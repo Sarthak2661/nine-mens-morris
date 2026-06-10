@@ -45,7 +45,7 @@ Nine Men's Morris is a perfect-information strategy game where players place and
 1. Clone the repository.
 
    ```bash
-   git clone https://github.com/yourusername/nine-mens-morris.git
+   git clone https://github.com/Sarthak2661/nine-mens-morris.git
    cd nine-mens-morris
    ```
 
