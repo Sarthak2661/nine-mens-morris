@@ -4,11 +4,11 @@
 [![Pygame-CE](https://img.shields.io/badge/pygame--ce-2.5.7-green)](https://github.com/pygame-community/pygame-ce)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A modern implementation of the classic strategy board game **Nine Men's Morris** in Python using Pygame. Play against another human or challenge the computer at three difficulty levels.
+This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, save support, and a simple computer opponent.
 
 ## About Nine Men's Morris
 
-Nine Men's Morris is a perfect-information strategy game where players place and move pieces to form mills: three pieces in a line. Forming a mill lets you capture an opponent's piece. A player wins by reducing the opponent to two pieces or by blocking all legal moves.
+Nine Men's Morris is a strategy board game where players place and move pieces to form mills, which are three pieces in a line. When a player forms a mill, they can capture one opponent piece. The game ends when a player is reduced to two pieces or has no legal moves left.
 
 ## Screenshots
 
@@ -28,7 +28,7 @@ Nine Men's Morris is a perfect-information strategy game where players place and
 
 - Three game phases: placement, movement, and flying
 - Two game modes: human vs human and human vs computer
-- Three AI difficulty levels: easy, normal, and hard
+- Three computer difficulty levels: easy, normal, and hard
 - Save and load support for game progress
 - Smooth Pygame board rendering and move feedback
 - Menu screens, instructions, and in-game status display
@@ -105,11 +105,11 @@ When a player has exactly three pieces left, that player can move to any empty p
 - Reduce the opponent to two or fewer pieces.
 - Block an opponent with three or more pieces from making any legal move.
 
-## AI Difficulty Levels
+## Computer Difficulty
 
 - **Easy**: Chooses a random legal move.
-- **Normal**: Uses basic strategy to form mills and block threats.
-- **Hard**: Uses stronger position evaluation for more competitive play.
+- **Normal**: Looks for immediate mills and blocks.
+- **Hard**: Uses a small scoring system to pick stronger moves.
 
 ## Project Structure
 
@@ -137,7 +137,7 @@ Run the full test suite:
 python -m unittest BL_tests GUI_tests -v
 ```
 
-The current suite contains 17 tests covering game logic and GUI smoke behavior.
+The test suite currently has 17 tests for the game rules and basic GUI behavior.
 
 ## Rules Implemented
 
@@ -156,9 +156,9 @@ The current suite contains 17 tests covering game logic and GUI smoke behavior.
 
 ## Future Enhancements
 
-- UI tweaks and full visual rework
-- Better movement, capture, and turn-transition animations
-- Player-selectable piece color: choose black, white, or custom colors
+- UI cleanup and a more consistent visual style
+- Better movement, capture, and turn-change animations
+- Player-selected piece colors
 - Board theme customization
 - Sound effects and background music
 - Online multiplayer support

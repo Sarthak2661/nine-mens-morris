@@ -6,15 +6,6 @@ import constants
 
 
 class NineMensMorrisGame:
-    """Business logic for Nine Men's Morris.
-
-    Public methods keep the original project API where possible:
-    - make_move(row, col, new_row, new_col)
-    - move_piece(...)
-    - remove_piece(...)
-    - is_mill(...)
-    """
-
     def __init__(self, game_mode=constants.H_VS_H, difficulty=None):
         self.phase = constants.PHASE1
         self.turn = constants.PLAY1
@@ -33,9 +24,6 @@ class NineMensMorrisGame:
         self.moves_made = []
         self.last_error = ""
 
-    # -------------------------
-    # Basic helpers
-    # -------------------------
     def get_turn(self):
         return self.turn
 
@@ -48,9 +36,6 @@ class NineMensMorrisGame:
     def get_player_pieces(self, player=None):
         player = self.turn if player is None else player
         return self.play1_pieces if player == constants.PLAY1 else self.play2_pieces
-
-    def set_phase(self, phase):
-        self.phase = phase
 
     def is_valid_point(self, row, col):
         return (row, col) in constants.VALID_POINTS
@@ -78,33 +63,24 @@ class NineMensMorrisGame:
         elif removed_player == constants.PLAY2:
             self.play2_pieces -= 1
 
-    # -------------------------
-    # Turn and game end
-    # -------------------------
     def change_turn(self):
-        """Change turn and update game state based on rules."""
         if self.phase == constants.PHASE1:
             if self.play1_counter == constants.TOTAL_MENS and self.play2_counter == constants.TOTAL_MENS:
-                # Transition to Phase 2 when all pieces are placed
                 self.phase = constants.PHASE2
                 self.turn = constants.PLAY1
                 self.message = constants.PLAY1_MOVE_MESSAGE
             else:
-                # Continue placement phase
                 self.turn = self.get_opp()
                 self.message = constants.PLAYER1_MESSAGE if self.turn == constants.PLAY1 else constants.PLAYER2_MESSAGE
         elif self.phase == constants.PHASE2:
-            # Change turn in movement phase
             self.turn = self.get_opp()
             self.message = constants.PLAY1_MOVE_MESSAGE if self.turn == constants.PLAY1 else constants.PLAY2_MOVE_MESSAGE
         else:
             self.message = "Invalid phase"
 
-        # Check for flying (Phase 3 variant)
         if self.phase == constants.PHASE2 and self.get_player_pieces(self.turn) == 3:
             self.message = self.get_player_from_const(self.turn) + constants.FLY_MESSAGE
 
-        # Check win condition
         winner = self.is_game_over()
         if winner is not None:
             self.over = True
@@ -112,7 +88,6 @@ class NineMensMorrisGame:
             self.message = f"{winner_name} wins the game!"
             return
         
-        # Check if current player is blocked (can't move)
         if self.phase == constants.PHASE2 and self.get_player_pieces(self.turn) > 3:
             if not self.get_all_legal_moves(self.turn):
                 self.over = True
@@ -122,37 +97,23 @@ class NineMensMorrisGame:
                 return
 
     def is_game_over(self):
-        """Check if the game is over according to official Nine Men's Morris rules.
-        
-        A player wins by:
-        1. Reducing opponent to 2 or fewer pieces
-        2. Blocking opponent from making any legal move (in Phase 2)
-        """
-        # Check if either player has 2 or fewer pieces
         if self.play1_pieces <= 2:
             return constants.PLAY2
         if self.play2_pieces <= 2:
             return constants.PLAY1
         
-        # Only check for blocked positions in Phase 2
         if self.phase == constants.PHASE2:
-            # A player with 3+ pieces who cannot move loses
             play1_pieces = self.play1_pieces
             play2_pieces = self.play2_pieces
             
-            # Player 1 is blocked (has pieces but no moves and can't fly)
             if play1_pieces > 3 and not self.get_all_legal_moves(constants.PLAY1):
                 return constants.PLAY2
             
-            # Player 2 is blocked (has pieces but no moves and can't fly)
             if play2_pieces > 3 and not self.get_all_legal_moves(constants.PLAY2):
                 return constants.PLAY1
         
         return None
 
-    # -------------------------
-    # Placement / movement
-    # -------------------------
     def make_move(self, row, col, new_row=None, new_col=None):
         self.last_error = ""
         if self.over:
@@ -172,7 +133,10 @@ class NineMensMorrisGame:
             return True
 
         if self.phase == constants.PHASE2:
-            moved = self.fly_piece(row, col, new_row, new_col, self.turn) if self.get_player_pieces(self.turn) == 3 else self.move_piece(row, col, new_row, new_col, self.turn)
+            if self.get_player_pieces(self.turn) == 3:
+                moved = self.fly_piece(row, col, new_row, new_col, self.turn)
+            else:
+                moved = self.move_piece(row, col, new_row, new_col, self.turn)
             if not moved:
                 return False
             self.record_move(self.get_move_text(row, col, new_row, new_col))
@@ -275,9 +239,6 @@ class NineMensMorrisGame:
             moves.extend(((row, col), dest) for dest in destinations)
         return moves
 
-    # -------------------------
-    # Mills and removal
-    # -------------------------
     def is_mill(self, row, col, player):
         if not self.is_valid_point(row, col):
             return False
@@ -300,15 +261,7 @@ class NineMensMorrisGame:
         non_mill_pieces = [(r, c) for r, c in pieces if not self.is_mill_at_position(r, c)]
         return non_mill_pieces or pieces
 
-    def has_free_pieces(self):
-        return bool([piece for piece in self.removable_pieces(self.get_opp()) if not self.is_mill_at_position(*piece)])
-
     def remove_piece(self, row, col, player=None):
-        """Remove an opponent piece after a mill.
-
-        player is the player performing removal. It is optional to preserve the
-        original tests' remove_piece(row, col) usage.
-        """
         if not self.is_valid_point(row, col):
             self.last_error = "Select a valid point to remove."
             return False
@@ -319,7 +272,6 @@ class NineMensMorrisGame:
             self.last_error = "Cannot remove an empty point."
             return False
         if target == remover:
-            # Compatibility mode for old tests that use remove_piece to reset boards.
             if player is None and not self.is_remove_piece:
                 self.CURRENT_POSITION[row][col] = constants.BLANK
                 return True
@@ -336,9 +288,6 @@ class NineMensMorrisGame:
         self.change_turn()
         return True
 
-    # -------------------------
-    # Simple computer player
-    # -------------------------
     def is_computer_turn(self):
         return self.game_mode == constants.H_VS_C and self.turn == constants.PLAY2 and not self.over
 
@@ -375,7 +324,6 @@ class NineMensMorrisGame:
         
         opponent = constants.PLAY1 if player == constants.PLAY2 else constants.PLAY2
         
-        # NORMAL and HARD: Prefer immediate mill
         for row, col in empty_points:
             self.CURRENT_POSITION[row][col] = player
             forms_mill = self.is_mill(row, col, player)
@@ -383,7 +331,6 @@ class NineMensMorrisGame:
             if forms_mill:
                 return row, col
         
-        # NORMAL and HARD: Block opponent immediate mill
         for row, col in empty_points:
             self.CURRENT_POSITION[row][col] = opponent
             blocks = self.is_mill(row, col, opponent)
@@ -392,7 +339,6 @@ class NineMensMorrisGame:
                 return row, col
         
         if self.difficulty == constants.HARD:
-            # HARD: Prefer positions that lead to multiple mill threats
             scoring_positions = []
             for row, col in empty_points:
                 score = self._score_placement_hard(row, col, player, opponent)
@@ -404,21 +350,17 @@ class NineMensMorrisGame:
         return random.choice(empty_points)
 
     def _score_placement_hard(self, row, col, player, opponent):
-        """Score a placement position for hard difficulty"""
         score = 0
         
-        # Count adjacent pieces of same player (potential for future mill)
         adjacent_positions = constants.ADJACENT_POSITIONS.get((row, col), [])
         for adj_row, adj_col in adjacent_positions:
             if self.CURRENT_POSITION[adj_row][adj_col] == player:
                 score += 2
         
-        # Penalize positions near opponent pieces
         for adj_row, adj_col in adjacent_positions:
             if self.CURRENT_POSITION[adj_row][adj_col] == opponent:
                 score -= 1
         
-        # Prefer center positions
         if row == 3 and col == 3:
             score += 5
         
@@ -430,7 +372,6 @@ class NineMensMorrisGame:
         
         opponent = constants.PLAY1 if player == constants.PLAY2 else constants.PLAY2
         
-        # NORMAL and HARD: Prioritize forming mills
         for start, end in legal_moves:
             self.CURRENT_POSITION[start[0]][start[1]] = constants.BLANK
             self.CURRENT_POSITION[end[0]][end[1]] = player
@@ -441,7 +382,6 @@ class NineMensMorrisGame:
                 return start, end
         
         if self.difficulty == constants.HARD:
-            # HARD: Evaluate moves based on strategy
             scored_moves = []
             for start, end in legal_moves:
                 score = self._score_movement_hard(start, end, player, opponent)
@@ -455,23 +395,18 @@ class NineMensMorrisGame:
         return random.choice(legal_moves)
 
     def _score_movement_hard(self, start, end, player, opponent):
-        """Score a movement for hard difficulty"""
         score = 0
         
-        # Evaluate the destination
         end_row, end_col = end
         
-        # Prefer moving toward center
         center_distance = abs(end_row - 3) + abs(end_col - 3)
         score += (6 - center_distance) * 2
         
-        # Count adjacent same-player pieces at destination
         adjacent_positions = constants.ADJACENT_POSITIONS.get(end, [])
         same_player_adjacent = sum(1 for r, c in adjacent_positions 
                                    if self.CURRENT_POSITION[r][c] == player)
         score += same_player_adjacent * 2
         
-        # Penalize moving away from all pieces
         start_row, start_col = start
         start_adjacent = sum(1 for r, c in constants.ADJACENT_POSITIONS.get(start, []) 
                             if self.CURRENT_POSITION[r][c] == player)
@@ -480,9 +415,6 @@ class NineMensMorrisGame:
         
         return score
 
-    # -------------------------
-    # Persistence
-    # -------------------------
     def save_game(self):
         if os.path.exists(constants.GAME_STATE_FILE):
             os.remove(constants.GAME_STATE_FILE)

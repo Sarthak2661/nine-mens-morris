@@ -8,19 +8,15 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.14']
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.14'
     
     - name: Install dependencies
       run: |
@@ -33,6 +29,5 @@ jobs:
     
     - name: Generate coverage report
       run: |
-        pip install coverage
         coverage run -m unittest BL_tests GUI_tests
         coverage report

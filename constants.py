@@ -2,12 +2,10 @@
 BLANK = 0
 PLAY1 = 1
 PLAY2 = 2
-VALID = 3
 
 # Game phases
 PHASE1 = 1  # placement
 PHASE2 = 2  # adjacent movement / flying when a player has 3 pieces
-PHASE3 = 3  # kept for backward compatibility
 
 # Board size and pieces
 ROWS = 7
@@ -16,18 +14,6 @@ TOTAL_MENS = 9
 
 # Current positions on the board; each NineMensMorrisGame deep-copies this.
 CURRENT_POSITION = [[BLANK for _ in range(COLS)] for _ in range(ROWS)]
-
-# Valid points on the 7x7 representation of a Nine Men's Morris board.
-VALID_POSITIONS = [
-    # 0  1  2  3  4  5  6
-    [3, 0, 0, 3, 0, 0, 3],  # 0
-    [0, 3, 0, 3, 0, 3, 0],  # 1
-    [0, 0, 3, 3, 3, 0, 0],  # 2
-    [3, 3, 3, 0, 3, 3, 3],  # 3
-    [0, 0, 3, 3, 3, 0, 0],  # 4
-    [0, 3, 0, 3, 0, 3, 0],  # 5
-    [3, 0, 0, 3, 0, 0, 3],  # 6
-]
 
 VALID_POINTS = [
     (0, 0), (0, 3), (0, 6),
@@ -118,19 +104,8 @@ LINE_WIDTH = 5
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (185, 42, 42)
-BLUE = (40, 86, 185)
-GREEN = (35, 150, 75)
 GRAY = (180, 180, 180)
-DARK_GRAY = (70, 70, 70)
-LIGHT_GRAY = (235, 235, 235)
-YELLOW = (245, 205, 65)
 GOLD = (218, 165, 32)
-BOARD_BG = (240, 235, 220)
-PANEL_BG = (250, 250, 250)
-HIGHLIGHT = (255, 220, 80)
-VALID_MOVE = (100, 200, 100)
-WARNING = (205, 75, 55)
 
 # Player piece colors (Black and White)
 PLAY1_COLOR_DARK = (40, 40, 50)       # Dark gray-black
@@ -144,9 +119,6 @@ PLAY2_COLOR_LIGHT = (200, 200, 200)   # Light gray
 BOARD_DARK = (139, 90, 43)             # Dark wood
 BOARD_LINE_COLOR = (50, 30, 10)        # Very dark lines
 
-DARK_BLUE = (20, 50, 120)
-LIGHT_BLUE = (100, 150, 255)
-
 PLAYER1_MESSAGE = "Player 1 (Black): place a piece"
 PLAYER2_MESSAGE = "Player 2 (White): place a piece"
 PLAY1_MOVE_MESSAGE = "Player 1 (Black): select a piece to move"
@@ -159,22 +131,11 @@ H_VS_C = 1
 POSITIONS = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g"}
 GAME_STATE_FILE = "game_state.txt"
 
-# Game difficulty levels for AI
+# Game difficulty levels for the computer player
 EASY = 0
 NORMAL = 1
 HARD = 2
-DIFFICULTY_NAMES = {EASY: "Easy", NORMAL: "Normal", HARD: "Hard"}
 
 # Animation
-ANIMATION_SPEED = 0.15  # Piece movement speed (0-1, fraction per frame)
-ANIMATION_DURATION = 300  # milliseconds for smooth transitions
-
-# Animation constants
 ANIMATION_DURATION = 300  # milliseconds
 ANIMATION_SPEED = 8  # pixels per frame
-
-# Additional UI colors
-DARK_BLUE = (20, 50, 120)
-LIGHT_BLUE = (173, 216, 230)
-GOLD = (255, 215, 0)
-DARK_RED = (139, 0, 0)
