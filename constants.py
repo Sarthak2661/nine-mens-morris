@@ -11,6 +11,8 @@ PHASE2 = 2  # adjacent movement / flying when a player has 3 pieces
 ROWS = 7
 COLS = 7
 TOTAL_MENS = 9
+THREEFOLD_REPETITION_COUNT = 3
+MAX_MOVES_WITHOUT_CAPTURE = 50
 
 # Current positions on the board; each NineMensMorrisGame deep-copies this.
 CURRENT_POSITION = [[BLANK for _ in range(COLS)] for _ in range(ROWS)]

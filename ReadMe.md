@@ -106,6 +106,14 @@ When a player has exactly three pieces left, that player can move to any empty p
 - Reduce the opponent to two or fewer pieces.
 - Block an opponent with three or more pieces from making any legal move.
 
+## Draw Rules
+
+- The same board position with the same player to move occurring three times
+  ends the game in a draw.
+- Fifty completed movement turns without a capture ends the game in a draw.
+- Draw tracking starts after both players have placed all nine pieces. A win
+  condition is evaluated before either draw condition.
+
 ## Computer Difficulty
 
 - **Easy**: Chooses a random legal move.
@@ -138,7 +146,8 @@ Run the full test suite:
 python -m unittest BL_tests GUI_tests -v
 ```
 
-The test suite currently has 17 tests for the game rules and basic GUI behavior.
+The test suite currently has 26 tests for game rules, draw handling, complete
+phase transitions, endgame behavior, and basic GUI behavior.
 
 ## Rules Implemented
 

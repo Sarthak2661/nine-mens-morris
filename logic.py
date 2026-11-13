@@ -23,6 +23,9 @@ class NineMensMorrisGame:
         self.over = False
         self.moves_made = []
         self.last_error = ""
+        self.draw_reason = ""
+        self.moves_without_capture = 0
+        self.position_counts = {}
 
     def get_turn(self):
         return self.turn
@@ -36,6 +39,12 @@ class NineMensMorrisGame:
     def get_player_pieces(self, player=None):
         player = self.turn if player is None else player
         return self.play1_pieces if player == constants.PLAY1 else self.play2_pieces
+
+    def get_on_board_count(self, player):
+        return sum(
+            self.CURRENT_POSITION[row][col] == player
+            for row, col in constants.VALID_POINTS
+        )
 
     def is_valid_point(self, row, col):
         return (row, col) in constants.VALID_POINTS
@@ -87,14 +96,8 @@ class NineMensMorrisGame:
             winner_name = self.get_player_from_const(winner)
             self.message = f"{winner_name} wins the game!"
             return
-        
-        if self.phase == constants.PHASE2 and self.get_player_pieces(self.turn) > 3:
-            if not self.get_all_legal_moves(self.turn):
-                self.over = True
-                opponent = self.get_opp()
-                opponent_name = self.get_player_from_const(opponent)
-                self.message = f"{opponent_name} wins! {self.get_player_from_const(self.turn)} has no legal moves."
-                return
+
+        self._record_position_and_check_draw()
 
     def is_game_over(self):
         if self.play1_pieces <= 2:
@@ -102,17 +105,36 @@ class NineMensMorrisGame:
         if self.play2_pieces <= 2:
             return constants.PLAY1
         
-        if self.phase == constants.PHASE2:
-            play1_pieces = self.play1_pieces
-            play2_pieces = self.play2_pieces
-            
-            if play1_pieces > 3 and not self.get_all_legal_moves(constants.PLAY1):
-                return constants.PLAY2
-            
-            if play2_pieces > 3 and not self.get_all_legal_moves(constants.PLAY2):
-                return constants.PLAY1
+        if self.phase == constants.PHASE2 and not self.get_all_legal_moves(self.turn):
+            return self.get_opp()
         
         return None
+
+    def _position_key(self):
+        board = tuple(
+            self.CURRENT_POSITION[row][col]
+            for row, col in constants.VALID_POINTS
+        )
+        return board, self.turn
+
+    def _record_position_and_check_draw(self):
+        if self.phase != constants.PHASE2 or self.over:
+            return
+
+        key = self._position_key()
+        self.position_counts[key] = self.position_counts.get(key, 0) + 1
+
+        if self.position_counts[key] >= constants.THREEFOLD_REPETITION_COUNT:
+            self._declare_draw("Draw by threefold repetition.")
+        elif self.moves_without_capture >= constants.MAX_MOVES_WITHOUT_CAPTURE:
+            self._declare_draw(
+                f"Draw after {constants.MAX_MOVES_WITHOUT_CAPTURE} moves without a capture."
+            )
+
+    def _declare_draw(self, reason):
+        self.over = True
+        self.draw_reason = reason
+        self.message = reason
 
     def make_move(self, row, col, new_row=None, new_col=None):
         self.last_error = ""
@@ -140,6 +162,7 @@ class NineMensMorrisGame:
             if not moved:
                 return False
             self.record_move(self.get_move_text(row, col, new_row, new_col))
+            self.moves_without_capture += 1
             if self.is_mill(new_row, new_col, self.turn):
                 self.message = self.get_player_from_const(self.turn) + ": " + constants.REMOVE_MESSAGE
                 self.is_remove_piece = True
@@ -262,6 +285,9 @@ class NineMensMorrisGame:
         return non_mill_pieces or pieces
 
     def remove_piece(self, row, col, player=None):
+        if not self.is_remove_piece:
+            self.last_error = "No capture is currently available."
+            return False
         if not self.is_valid_point(row, col):
             self.last_error = "Select a valid point to remove."
             return False
@@ -272,9 +298,6 @@ class NineMensMorrisGame:
             self.last_error = "Cannot remove an empty point."
             return False
         if target == remover:
-            if player is None and not self.is_remove_piece:
-                self.CURRENT_POSITION[row][col] = constants.BLANK
-                return True
             self.last_error = "You must remove an opponent piece."
             return False
         if (row, col) not in self.removable_pieces(target):
@@ -284,6 +307,7 @@ class NineMensMorrisGame:
         self.CURRENT_POSITION[row][col] = constants.BLANK
         self.update_pieces(target)
         self.is_remove_piece = False
+        self.moves_without_capture = 0
         self.record_move("x" + self.get_move(row, col))
         self.change_turn()
         return True

@@ -50,6 +50,17 @@ class TestNineMensMorrisGUI(unittest.TestCase):
                 menu.selected_option = constants.H_VS_C
         self.assertEqual(menu.get_selected_option(), constants.H_VS_C)
 
+    def test_reset_preserves_mode_and_difficulty(self):
+        self.game.game_mode = constants.H_VS_C
+        self.game.difficulty = constants.HARD
+        self.game.make_move(4, 3)
+
+        self.gui.handle_click(self.gui.reset_rect.center)
+
+        self.assertEqual(self.game.game_mode, constants.H_VS_C)
+        self.assertEqual(self.game.difficulty, constants.HARD)
+        self.assertEqual(self.game.get_on_board_count(constants.PLAY1), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

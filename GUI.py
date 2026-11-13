@@ -179,14 +179,14 @@ class NineMensMorrisGUI:
             status_y = msg_y + 55
         self.draw_status_card(
             "BLACK PIECES", 
-            self.game.play1_pieces, 
+            self.game.get_on_board_count(constants.PLAY1),
             constants.TOTAL_MENS - self.game.play1_counter, 
             (60, 60, 70), 
             status_y
         )
         self.draw_status_card(
             "WHITE PIECES", 
-            self.game.play2_pieces, 
+            self.game.get_on_board_count(constants.PLAY2),
             constants.TOTAL_MENS - self.game.play2_counter, 
             (150, 150, 160), 
             status_y + 80
@@ -261,7 +261,8 @@ class NineMensMorrisGUI:
             return
         if self.reset_rect.collidepoint(pos):
             mode = self.game.game_mode
-            self.game.__init__(game_mode=mode)
+            difficulty = self.game.difficulty
+            self.game.__init__(game_mode=mode, difficulty=difficulty)
             self.clicked_point = None
             self.valid_destinations = []
             return
