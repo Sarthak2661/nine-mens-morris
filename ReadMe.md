@@ -29,7 +29,7 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Three game phases: placement, movement, and flying
 - Two game modes: human vs human and human vs computer
 - Three computer difficulty levels: easy, normal, and hard
-- Save and load support for game progress
+- Save move history for review and debugging (game restoration is not implemented yet)
 - Smooth Pygame board rendering and move feedback
 - Menu screens, instructions, and in-game status display
 
@@ -86,7 +86,8 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Click an empty board point to place a piece during placement.
 - Click one of your pieces, then click a valid destination to move during movement.
 - Form a mill to remove one eligible opponent piece.
-- Use the reset, save, and exit controls from the game sidebar.
+- Use the reset, save, and exit controls from the game sidebar. Save writes the
+  current move history to `game_state.txt`; it does not restore a match yet.
 
 ### Phase 1: Placement
 
@@ -168,6 +169,13 @@ The test suite currently has 17 tests for the game rules and basic GUI behavior.
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Asset Provenance
+
+- `resources/background.png` was generated specifically for this project with
+  OpenAI's image generation tool and is distributed with this repository under
+  the MIT License.
+- The remaining PNG files in `resources/` are screenshots captured from the game.
 
 ## Acknowledgments
 

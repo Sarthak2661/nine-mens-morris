@@ -19,7 +19,7 @@ class HomePage:
         
         self.background = None
         try:
-            bg_path = os.path.join(os.path.dirname(__file__), "resources", "background.jpg")
+            bg_path = os.path.join(os.path.dirname(__file__), "resources", "background.png")
             if os.path.exists(bg_path):
                 self.background = pygame.image.load(bg_path)
                 self.background = pygame.transform.scale(self.background, 
