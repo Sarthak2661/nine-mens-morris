@@ -73,6 +73,12 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
    pip install -r requirements.txt
    ```
 
+   Contributors can install the separate quality and packaging toolchain with:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
 4. Run the game.
 
    ```bash
@@ -131,7 +137,11 @@ When a player has exactly three pieces left, that player can move to any empty p
 |-- constants.py            # Game constants and configuration
 |-- BL_tests.py             # Business logic unit tests
 |-- GUI_tests.py            # GUI unit tests
-|-- requirements.txt        # Python dependencies
+|-- quality_tests.py        # Rule, invariant, and AI legality tests
+|-- requirements.txt        # Runtime dependencies
+|-- requirements-dev.txt    # Test, lint, audit, and packaging tools
+|-- pyproject.toml          # Ruff, mypy, and coverage configuration
+|-- scripts/build_game.py   # Cross-platform PyInstaller build script
 |-- ReadMe.md               # Project documentation
 |-- .gitignore              # Git ignore rules
 |-- .github/                # GitHub workflows and templates
@@ -143,11 +153,34 @@ When a player has exactly three pieces left, that player can move to any empty p
 Run the full test suite:
 
 ```bash
-python -m unittest BL_tests GUI_tests -v
+python -m unittest discover -p "*tests.py" -v
 ```
 
-The test suite currently has 26 tests for game rules, draw handling, complete
-phase transitions, endgame behavior, and basic GUI behavior.
+The test suite currently has 46 tests covering game rules, draw handling,
+complete phase transitions, endgame behavior, GUI behavior, state invariants,
+capture limits, and AI move legality. CI enforces at least 90% branch coverage
+for `logic.py`; the current measured branch coverage is 99%.
+
+Run all local quality gates with:
+
+```bash
+ruff check .
+ruff format --check .
+mypy
+coverage run -m unittest discover -p "*tests.py" -v
+coverage report
+pip-audit -r requirements.txt
+```
+
+Build the Windows executable with:
+
+```bash
+python scripts/build_game.py
+```
+
+GitHub Actions blocks changes that fail linting, formatting, type checking,
+tests, coverage, dependency auditing, Windows packaging, or packaged-app
+startup.
 
 ## Rules Implemented
 
@@ -163,6 +196,8 @@ phase transitions, endgame behavior, and basic GUI behavior.
 - Python 3.14
 - Pygame Community Edition 2.5.7
 - Python unittest
+- Ruff, mypy, coverage, and pip-audit
+- PyInstaller
 
 ## Future Enhancements
 

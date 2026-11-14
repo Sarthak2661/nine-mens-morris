@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 import pygame
 
 import constants
@@ -16,14 +17,15 @@ class HomePage:
         self.subtitle_font = pygame.font.SysFont("Segoe UI", 28)
         self.start_button_rect = pygame.Rect(175, 480, 300, 70)
         self.how_to_play_button_rect = pygame.Rect(525, 480, 250, 70)
-        
+
         self.background = None
         try:
             bg_path = os.path.join(os.path.dirname(__file__), "resources", "background.png")
             if os.path.exists(bg_path):
                 self.background = pygame.image.load(bg_path)
-                self.background = pygame.transform.scale(self.background, 
-                                                        (constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
+                self.background = pygame.transform.scale(
+                    self.background, (constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT)
+                )
         except Exception as e:
             print(f"Could not load background: {e}")
 
@@ -67,7 +69,9 @@ class HomePage:
         pygame.draw.line(self.screen, (218, 165, 32), (150, 280), (750, 280), 2)
 
         desc_font = pygame.font.SysFont("Segoe UI", 18)
-        desc = desc_font.render("Place, move, and capture your opponent's pieces to win", True, (200, 200, 200))
+        desc = desc_font.render(
+            "Place, move, and capture your opponent's pieces to win", True, (200, 200, 200)
+        )
         self.screen.blit(desc, desc.get_rect(center=(constants.SCREEN_WIDTH // 2, 330)))
 
         self.draw_button(self.start_button_rect, "START GAME", (60, 120, 200), (100, 160, 255))
@@ -102,49 +106,41 @@ class InstructionsScreen:
             ("ABOUT NINE MEN'S MORRIS", "heading"),
             ("A strategy game where both players can see the full board.", "text"),
             ("", "text"),
-            
             ("OBJECTIVE", "heading"),
             ("Win by reducing your opponent to 2 pieces or blocking all their moves.", "text"),
             ("", "text"),
-            
             ("GAME PHASES", "heading"),
             ("PHASE 1: PLACEMENT", "subheading"),
             ("- Take turns placing 9 pieces on empty board points", "text"),
             ("- Form a mill, which is 3 pieces in one line", "text"),
             ("- After a mill, remove one eligible opponent piece", "text"),
             ("", "text"),
-            
             ("PHASE 2: MOVEMENT", "subheading"),
             ("- Move pieces to adjacent empty points only (no jumping)", "text"),
             ("- Form mills to capture pieces as before", "text"),
             ("- You can break and reform mills later in the game", "text"),
             ("", "text"),
-            
             ("PHASE 3: FLYING (When you have 3 pieces)", "subheading"),
             ("- Move pieces to any empty point on the board", "text"),
             ("- This keeps the endgame from getting stuck too quickly", "text"),
             ("", "text"),
-            
             ("WIN CONDITIONS", "heading"),
             ("- Opponent reduced to 2 pieces or fewer", "text"),
             ("- Opponent with 3+ pieces has no legal adjacent moves", "text"),
             ("- The game stops once a win condition is reached", "text"),
             ("", "text"),
-            
             ("KEY RULES", "heading"),
             ("- Mills are horizontal or vertical, not diagonal", "text"),
             ("- Pieces slide along board lines; no jumping", "text"),
             ("- Captured pieces are permanently removed", "text"),
             ("- With perfect play from both sides, the game is usually a draw", "text"),
             ("", "text"),
-            
             ("GAME MODES", "heading"),
             ("HUMAN VS HUMAN: Two players on one computer", "text"),
             ("EASY: Computer plays random legal moves", "text"),
             ("NORMAL: Computer tries to make and block mills", "text"),
             ("HARD: Computer uses a simple move score", "text"),
             ("", "text"),
-            
             ("WINNING STRATEGY", "heading"),
             ("- Control the center for flexibility", "text"),
             ("- Create more than one possible mill", "text"),
@@ -200,31 +196,32 @@ class InstructionsScreen:
         pygame.draw.rect(self.screen, (200, 150, 100), content_area, width=3, border_radius=10)
         y = 110 - self.scroll_offset
         max_y = 660
-        
+
         for text, text_type in self.instructions:
             if text_type == "heading":
                 line = self.heading_font.render(text, True, (50, 50, 50))
-                color = (50, 50, 50)
                 font = self.heading_font
             elif text_type == "subheading":
                 line = self.heading_font.render(text, True, (100, 100, 100))
-                color = (100, 100, 100)
                 font = self.heading_font
             else:
                 line = self.text_font.render(text, True, (0, 0, 0))
-                color = (0, 0, 0)
                 font = self.text_font
-            
+
             if y > 95 and y < max_y:
                 self.screen.blit(line, (70, y))
-            
+
             y += font.get_height() + 5
         pygame.draw.rect(self.screen, (139, 90, 43), self.back_button_rect, border_radius=8)
-        pygame.draw.rect(self.screen, (255, 255, 255), self.back_button_rect, width=2, border_radius=8)
+        pygame.draw.rect(
+            self.screen, (255, 255, 255), self.back_button_rect, width=2, border_radius=8
+        )
         back_text = self.text_font.render("< BACK", True, (255, 255, 255))
         self.screen.blit(back_text, back_text.get_rect(center=self.back_button_rect.center))
         hint_font = pygame.font.SysFont("Segoe UI", 14)
-        hint = hint_font.render("Use UP/DOWN arrows or mouse wheel to scroll | ESC to go back", True, (100, 100, 100))
+        hint = hint_font.render(
+            "Use UP/DOWN arrows or mouse wheel to scroll | ESC to go back", True, (100, 100, 100)
+        )
         self.screen.blit(hint, (15, 690))
 
 
@@ -325,7 +322,9 @@ class DifficultySelector:
         title_shadow = self.title_font.render("Select Difficulty", True, (0, 0, 0))
         self.screen.blit(title_shadow, (title_rect.x + 2, title_rect.y + 2))
         self.screen.blit(title, title_rect)
-        subtitle = self.small_font.render("How challenging should your opponent be?", True, (220, 200, 170))
+        subtitle = self.small_font.render(
+            "How challenging should your opponent be?", True, (220, 200, 170)
+        )
         self.screen.blit(subtitle, subtitle.get_rect(center=(constants.SCREEN_WIDTH // 2, 180)))
 
         pygame.draw.line(self.screen, (218, 165, 32), (100, 240), (800, 240), 2)
@@ -346,5 +345,3 @@ class DifficultySelector:
 
     def get_selected_difficulty(self):
         return self.selected_difficulty
-
-

@@ -1,13 +1,12 @@
 import constants
 from GUI import NineMensMorrisGUI
 from logic import NineMensMorrisGame
-from menu import HomePage, Menu, DifficultySelector
+from menu import DifficultySelector, HomePage, Menu
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     home = HomePage()
     home.display()
-    
+
     menu = Menu()
     menu.display_menu()
     selected_option = menu.get_selected_option()

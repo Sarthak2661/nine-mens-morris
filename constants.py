@@ -18,13 +18,30 @@ MAX_MOVES_WITHOUT_CAPTURE = 50
 CURRENT_POSITION = [[BLANK for _ in range(COLS)] for _ in range(ROWS)]
 
 VALID_POINTS = [
-    (0, 0), (0, 3), (0, 6),
-    (1, 1), (1, 3), (1, 5),
-    (2, 2), (2, 3), (2, 4),
-    (3, 0), (3, 1), (3, 2), (3, 4), (3, 5), (3, 6),
-    (4, 2), (4, 3), (4, 4),
-    (5, 1), (5, 3), (5, 5),
-    (6, 0), (6, 3), (6, 6),
+    (0, 0),
+    (0, 3),
+    (0, 6),
+    (1, 1),
+    (1, 3),
+    (1, 5),
+    (2, 2),
+    (2, 3),
+    (2, 4),
+    (3, 0),
+    (3, 1),
+    (3, 2),
+    (3, 4),
+    (3, 5),
+    (3, 6),
+    (4, 2),
+    (4, 3),
+    (4, 4),
+    (5, 1),
+    (5, 3),
+    (5, 5),
+    (6, 0),
+    (6, 3),
+    (6, 6),
 ]
 
 # All legal mills. This intentionally excludes diagonals.
@@ -76,14 +93,14 @@ ADJACENT_POSITIONS = {
 
 # Board line coordinates for rendering.
 LINES = [
-    [3.5, .5, 3.5, 2.5],
+    [3.5, 0.5, 3.5, 2.5],
     [0.5, 3.5, 2.5, 3.5],
     [3.5, 4.5, 3.5, 6.5],
     [4.5, 3.5, 6.5, 3.5],
-    [.5, .5, 6.5, .5],
-    [6.5, .5, 6.5, 6.5],
-    [6.5, 6.5, .5, 6.5],
-    [0.5, 6.5, .5, .5],
+    [0.5, 0.5, 6.5, 0.5],
+    [6.5, 0.5, 6.5, 6.5],
+    [6.5, 6.5, 0.5, 6.5],
+    [0.5, 6.5, 0.5, 0.5],
     [1.5, 1.5, 5.5, 1.5],
     [5.5, 1.5, 5.5, 5.5],
     [5.5, 5.5, 1.5, 5.5],
@@ -110,16 +127,16 @@ GRAY = (180, 180, 180)
 GOLD = (218, 165, 32)
 
 # Player piece colors (Black and White)
-PLAY1_COLOR_DARK = (40, 40, 50)       # Dark gray-black
-PLAY1_COLOR_MAIN = (80, 80, 90)       # Medium gray-black
-PLAY1_COLOR_LIGHT = (180, 180, 190)   # Light gray
-PLAY2_COLOR_DARK = (240, 240, 245)    # Very light (white)
-PLAY2_COLOR_MAIN = (255, 255, 255)    # Pure white
-PLAY2_COLOR_LIGHT = (200, 200, 200)   # Light gray
+PLAY1_COLOR_DARK = (40, 40, 50)  # Dark gray-black
+PLAY1_COLOR_MAIN = (80, 80, 90)  # Medium gray-black
+PLAY1_COLOR_LIGHT = (180, 180, 190)  # Light gray
+PLAY2_COLOR_DARK = (240, 240, 245)  # Very light (white)
+PLAY2_COLOR_MAIN = (255, 255, 255)  # Pure white
+PLAY2_COLOR_LIGHT = (200, 200, 200)  # Light gray
 
 # Dark wood board colors
-BOARD_DARK = (139, 90, 43)             # Dark wood
-BOARD_LINE_COLOR = (50, 30, 10)        # Very dark lines
+BOARD_DARK = (139, 90, 43)  # Dark wood
+BOARD_LINE_COLOR = (50, 30, 10)  # Very dark lines
 
 PLAYER1_MESSAGE = "Player 1 (Black): place a piece"
 PLAYER2_MESSAGE = "Player 2 (White): place a piece"

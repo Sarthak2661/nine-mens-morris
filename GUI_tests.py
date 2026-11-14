@@ -1,7 +1,9 @@
 import os
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import unittest
+
 import pygame
 
 import constants
@@ -43,10 +45,17 @@ class TestNineMensMorrisGUI(unittest.TestCase):
 
     def test_menu_human_vs_computer_enabled(self):
         menu = Menu()
-        pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": menu.human_vs_computer_button_rect.center}))
+        pygame.event.post(
+            pygame.event.Event(
+                pygame.MOUSEBUTTONDOWN, {"pos": menu.human_vs_computer_button_rect.center}
+            )
+        )
         # Process exactly one frame worth of events instead of entering the infinite menu loop.
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN and menu.human_vs_computer_button_rect.collidepoint(event.pos):
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and menu.human_vs_computer_button_rect.collidepoint(event.pos)
+            ):
                 menu.selected_option = constants.H_VS_C
         self.assertEqual(menu.get_selected_option(), constants.H_VS_C)
 
@@ -62,5 +71,5 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         self.assertEqual(self.game.get_on_board_count(constants.PLAY1), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

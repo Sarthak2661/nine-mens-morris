@@ -21,12 +21,14 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.spec
 PIPFILE.lock
 
 # Virtual environments
 venv/
 env/
 .venv/
+.quality-venv/
 ENV/
 env.bak/
 venv.bak/

@@ -143,10 +143,7 @@ class TestNineMensMorrisGame(unittest.TestCase):
     def test_complete_placement_transitions_to_movement(self):
         game = NineMensMorrisGame()
         while game.phase == constants.PHASE1:
-            empty_points = [
-                point for point in constants.VALID_POINTS
-                if game.is_empty(*point)
-            ]
+            empty_points = [point for point in constants.VALID_POINTS if game.is_empty(*point)]
             selected = empty_points[0]
             for point in empty_points:
                 game.CURRENT_POSITION[point[0]][point[1]] = game.turn
@@ -267,5 +264,5 @@ class TestNineMensMorrisGame(unittest.TestCase):
         self.assertEqual(game.turn, constants.PLAY1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
