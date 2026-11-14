@@ -242,7 +242,7 @@ class LogicQualityTests(unittest.TestCase):
                 legal = {tuple(move) for move in game.get_valid_moves()}
                 self.assertIn(game._best_placement(constants.PLAY2), legal)
 
-    def test_best_placement_wins_blocks_and_scores(self):
+    def test_best_placement_wins_and_blocks(self):
         game = NineMensMorrisGame(difficulty=constants.NORMAL)
         game.CURRENT_POSITION[0][0] = constants.PLAY2
         game.CURRENT_POSITION[0][3] = constants.PLAY2
@@ -253,11 +253,6 @@ class LogicQualityTests(unittest.TestCase):
         game.CURRENT_POSITION[1][3] = constants.PLAY1
         self.assertEqual(game._best_placement(constants.PLAY2), (1, 5))
 
-        game = NineMensMorrisGame(difficulty=constants.HARD)
-        game.CURRENT_POSITION[1][1] = constants.PLAY2
-        game.CURRENT_POSITION[1][5] = constants.PLAY1
-        self.assertEqual(game._score_placement_hard(1, 3, 2, 1), 1)
-
     def test_generated_ai_movements_are_legal_for_every_difficulty(self):
         for difficulty in (constants.EASY, constants.NORMAL, constants.HARD):
             with self.subTest(difficulty=difficulty):
@@ -265,22 +260,13 @@ class LogicQualityTests(unittest.TestCase):
                 legal = game.get_all_legal_moves(constants.PLAY2)
                 self.assertIn(game._best_movement(legal, constants.PLAY2), legal)
 
-    def test_best_movement_takes_mill_and_hard_scoring_branches(self):
+    def test_best_movement_takes_mill(self):
         game = NineMensMorrisGame(difficulty=constants.NORMAL)
         game.phase = constants.PHASE2
         for point in ((0, 0), (0, 3), (3, 6), (1, 1)):
             game.CURRENT_POSITION[point[0]][point[1]] = constants.PLAY2
         legal = game.get_all_legal_moves(constants.PLAY2)
         self.assertEqual(game._best_movement(legal, constants.PLAY2), ((3, 6), (0, 6)))
-
-        game = self.movement_game(turn=constants.PLAY2, difficulty=constants.HARD)
-        legal = game.get_all_legal_moves(constants.PLAY2)
-        selected = game._best_movement(legal, constants.PLAY2)
-        self.assertIn(selected, legal)
-        score_with_neighbor = game._score_movement_hard((6, 6), (6, 3), 2, 1)
-        game.CURRENT_POSITION[5][5] = constants.BLANK
-        score_without_neighbor = game._score_movement_hard((6, 6), (6, 3), 2, 1)
-        self.assertGreaterEqual(score_with_neighbor, score_without_neighbor)
 
     def test_save_overwrites_existing_move_history(self):
         game = NineMensMorrisGame()

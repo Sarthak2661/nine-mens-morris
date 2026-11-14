@@ -1,8 +1,8 @@
 import os
-import random
 from copy import deepcopy
 
 import constants
+from ai import MorrisAI
 
 
 class NineMensMorrisGame:
@@ -26,6 +26,7 @@ class NineMensMorrisGame:
         self.draw_reason = ""
         self.moves_without_capture = 0
         self.position_counts = {}
+        self.ai = MorrisAI(depth_limit=constants.HARD_AI_DEPTH)
 
     def get_turn(self):
         return self.turn
@@ -347,7 +348,12 @@ class NineMensMorrisGame:
         if self.is_remove_piece:
             pieces = self.removable_pieces(constants.PLAY1)
             if pieces:
-                row, col = pieces[0]
+                row, col = self.ai.choose_capture(
+                    self.ai.board_from_matrix(self.CURRENT_POSITION),
+                    constants.PLAY2,
+                    self.difficulty,
+                    self.phase,
+                )
                 return self.remove_piece(row, col, player=constants.PLAY2)
             return False
 
@@ -367,104 +373,20 @@ class NineMensMorrisGame:
         return False
 
     def _best_placement(self, player):
-        empty_points = [tuple(move) for move in self.get_valid_moves()]
-
-        if self.difficulty == constants.EASY:
-            return random.choice(empty_points)
-
-        opponent = constants.PLAY1 if player == constants.PLAY2 else constants.PLAY2
-
-        for row, col in empty_points:
-            self.CURRENT_POSITION[row][col] = player
-            forms_mill = self.is_mill(row, col, player)
-            self.CURRENT_POSITION[row][col] = constants.BLANK
-            if forms_mill:
-                return row, col
-
-        for row, col in empty_points:
-            self.CURRENT_POSITION[row][col] = opponent
-            blocks = self.is_mill(row, col, opponent)
-            self.CURRENT_POSITION[row][col] = constants.BLANK
-            if blocks:
-                return row, col
-
-        if self.difficulty == constants.HARD:
-            scoring_positions = []
-            for row, col in empty_points:
-                score = self._score_placement_hard(row, col, player, opponent)
-                scoring_positions.append((score, (row, col)))
-            if scoring_positions:
-                scoring_positions.sort(reverse=True, key=lambda x: x[0])
-                return scoring_positions[0][1]
-
-        return random.choice(empty_points)
-
-    def _score_placement_hard(self, row, col, player, opponent):
-        score = 0
-
-        adjacent_positions = constants.ADJACENT_POSITIONS.get((row, col), [])
-        for adj_row, adj_col in adjacent_positions:
-            if self.CURRENT_POSITION[adj_row][adj_col] == player:
-                score += 2
-
-        for adj_row, adj_col in adjacent_positions:
-            if self.CURRENT_POSITION[adj_row][adj_col] == opponent:
-                score -= 1
-
-        return score
+        return self.ai.choose_placement(
+            self.ai.board_from_matrix(self.CURRENT_POSITION),
+            player,
+            self.difficulty,
+        )
 
     def _best_movement(self, legal_moves, player):
-        if self.difficulty == constants.EASY:
-            return random.choice(legal_moves)
-
-        opponent = constants.PLAY1 if player == constants.PLAY2 else constants.PLAY2
-
-        for start, end in legal_moves:
-            self.CURRENT_POSITION[start[0]][start[1]] = constants.BLANK
-            self.CURRENT_POSITION[end[0]][end[1]] = player
-            forms_mill = self.is_mill(end[0], end[1], player)
-            self.CURRENT_POSITION[end[0]][end[1]] = constants.BLANK
-            self.CURRENT_POSITION[start[0]][start[1]] = player
-            if forms_mill:
-                return start, end
-
-        if self.difficulty == constants.HARD:
-            scored_moves = []
-            for start, end in legal_moves:
-                score = self._score_movement_hard(start, end, player, opponent)
-                scored_moves.append((score, start, end))
-
-            if scored_moves:
-                scored_moves.sort(reverse=True, key=lambda x: x[0])
-                _, start, end = scored_moves[0]
-                return start, end
-
-        return random.choice(legal_moves)
-
-    def _score_movement_hard(self, start, end, player, opponent):
-        score = 0
-
-        end_row, end_col = end
-
-        center_distance = abs(end_row - 3) + abs(end_col - 3)
-        score += (6 - center_distance) * 2
-
-        adjacent_positions = constants.ADJACENT_POSITIONS.get(end, [])
-        same_player_adjacent = sum(
-            1 for r, c in adjacent_positions if self.CURRENT_POSITION[r][c] == player
+        if not legal_moves:
+            raise ValueError("No legal movement is available.")
+        return self.ai.choose_movement(
+            self.ai.board_from_matrix(self.CURRENT_POSITION),
+            player,
+            self.difficulty,
         )
-        score += same_player_adjacent * 2
-
-        start_row, start_col = start
-        start_adjacent = sum(
-            1
-            for r, c in constants.ADJACENT_POSITIONS.get(start, [])
-            if self.CURRENT_POSITION[r][c] == player
-        )
-        if start_adjacent > 0:
-            score -= 1
-
-        return score
 
     def save_game(self):
         if os.path.exists(constants.GAME_STATE_FILE):

@@ -154,6 +154,7 @@ GAME_STATE_FILE = "game_state.txt"
 EASY = 0
 NORMAL = 1
 HARD = 2
+HARD_AI_DEPTH = 3
 
 # Animation
 ANIMATION_DURATION = 300  # milliseconds

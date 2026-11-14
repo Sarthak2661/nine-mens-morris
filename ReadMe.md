@@ -4,7 +4,7 @@
 [![Pygame-CE](https://img.shields.io/badge/pygame--ce-2.5.7-green)](https://github.com/pygame-community/pygame-ce)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, save support, and a simple computer opponent.
+This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, save support, and three distinct computer difficulty levels.
 
 ## About Nine Men's Morris
 
@@ -28,7 +28,7 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 
 - Three game phases: placement, movement, and flying
 - Two game modes: human vs human and human vs computer
-- Three computer difficulty levels: easy, normal, and hard
+- Three distinct computer difficulty levels with random, tactical, and search-based play
 - Save move history for review and debugging (game restoration is not implemented yet)
 - Smooth Pygame board rendering and move feedback
 - Menu screens, instructions, and in-game status display
@@ -122,9 +122,11 @@ When a player has exactly three pieces left, that player can move to any empty p
 
 ## Computer Difficulty
 
-- **Easy**: Chooses a random legal move.
-- **Normal**: Looks for immediate mills and blocks.
-- **Hard**: Uses a small scoring system to pick stronger moves.
+- **Easy**: Chooses random legal placements, movements, and captures.
+- **Normal**: Takes immediate mills and detects one-move movement threats before
+  selecting a blocking move.
+- **Hard**: Uses deterministic, depth-limited minimax with alpha-beta pruning,
+  board evaluation, and a transposition cache.
 
 ## Project Structure
 
@@ -132,16 +134,19 @@ When a player has exactly three pieces left, that player can move to any empty p
 9-men-morris/
 |-- main.py                 # Game entry point
 |-- logic.py                # Game engine and rules implementation
+|-- ai.py                   # Difficulty strategies and minimax search
 |-- GUI.py                  # Game board rendering and in-game UI
 |-- menu.py                 # Home, mode, difficulty, and instructions screens
 |-- constants.py            # Game constants and configuration
 |-- BL_tests.py             # Business logic unit tests
 |-- GUI_tests.py            # GUI unit tests
+|-- AI_tests.py             # Tactical and latency benchmark tests
 |-- quality_tests.py        # Rule, invariant, and AI legality tests
 |-- requirements.txt        # Runtime dependencies
 |-- requirements-dev.txt    # Test, lint, audit, and packaging tools
 |-- pyproject.toml          # Ruff, mypy, and coverage configuration
 |-- scripts/build_game.py   # Cross-platform PyInstaller build script
+|-- scripts/benchmark_ai.py # Reproducible AI quality and latency benchmark
 |-- ReadMe.md               # Project documentation
 |-- .gitignore              # Git ignore rules
 |-- .github/                # GitHub workflows and templates
@@ -156,10 +161,29 @@ Run the full test suite:
 python -m unittest discover -p "*tests.py" -v
 ```
 
-The test suite currently has 46 tests covering game rules, draw handling,
-complete phase transitions, endgame behavior, GUI behavior, state invariants,
-capture limits, and AI move legality. CI enforces at least 90% branch coverage
-for `logic.py`; the current measured branch coverage is 99%.
+The test suite covers game rules, draw handling, complete phase transitions,
+endgame behavior, GUI behavior, state invariants, capture limits, AI legality,
+and tactical positions for winning, blocking, capturing, and flying. CI enforces
+at least 90% branch coverage across the game and AI engines.
+
+Compare legal-action rate, tactical success, mean move latency, and
+95th-percentile latency across all three difficulties with:
+
+```bash
+python scripts/benchmark_ai.py
+```
+
+Reference result on Python 3.14.6 for the included winning, blocking,
+capturing, and flying positions:
+
+| Difficulty | Legal actions | Tactical success | Mean latency | P95 latency |
+|---|---:|---:|---:|---:|
+| Easy | 100% | 10.4% | 0.02 ms | 0.02 ms |
+| Normal | 100% | 100% | 0.25 ms | 0.63 ms |
+| Hard | 100% | 100% | 85.19 ms | 281.31 ms |
+
+Timing varies by machine. The benchmark uses fixed seeds and deterministic
+tactical fixtures so changes remain comparable.
 
 Run all local quality gates with:
 
