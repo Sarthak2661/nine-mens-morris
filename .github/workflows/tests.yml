@@ -63,3 +63,15 @@ jobs:
 
       - name: Smoke-test packaged executable
         run: python scripts/smoke_packaged.py
+
+      - name: Generate release checksum
+        run: python scripts/write_checksum.py
+
+      - name: Upload clean-runner package
+        uses: actions/upload-artifact@v7
+        with:
+          name: nine-mens-morris-windows-x64
+          path: |
+            dist/nine-mens-morris-windows-x64.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error

@@ -9,7 +9,7 @@ import pygame
 import constants
 from GUI import NineMensMorrisGUI, get_coords
 from logic import NineMensMorrisGame
-from menu import Menu
+from menu import DifficultySelector, HomePage, InstructionsScreen, Menu, wrap_text
 
 
 class TestNineMensMorrisGUI(unittest.TestCase):
@@ -69,6 +69,44 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         self.assertEqual(self.game.game_mode, constants.H_VS_C)
         self.assertEqual(self.game.difficulty, constants.HARD)
         self.assertEqual(self.game.get_on_board_count(constants.PLAY1), 0)
+
+    def test_instruction_copy_wraps_inside_content_area(self):
+        instructions = InstructionsScreen()
+        for text, text_type in instructions.instructions:
+            font = instructions._font_for_type(text_type)
+            for line in wrap_text(text, font, instructions.content_width):
+                self.assertLessEqual(font.size(line)[0], instructions.content_width)
+
+        hint = instructions.text_font.render("Scroll to read all rules", True, (0, 0, 0))
+        hint_rect = hint.get_rect(topleft=(230, 678))
+        self.assertFalse(instructions.back_button_rect.colliderect(hint_rect))
+
+    def test_common_display_scaling_keeps_complete_frame(self):
+        renderers = [
+            (HomePage(), "draw"),
+            (Menu(), "draw_menu"),
+            (DifficultySelector(), "draw_selector"),
+            (InstructionsScreen(), "draw"),
+        ]
+        for renderer, method_name in renderers:
+            getattr(renderer, method_name)()
+            frame = renderer.screen.copy()
+            self.assertEqual(frame.get_size(), (constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
+            for scale in (1.0, 1.25, 1.5):
+                scaled = pygame.transform.smoothscale(
+                    frame,
+                    (
+                        round(constants.SCREEN_WIDTH * scale),
+                        round(constants.SCREEN_HEIGHT * scale),
+                    ),
+                )
+                self.assertEqual(
+                    scaled.get_size(),
+                    (
+                        round(constants.SCREEN_WIDTH * scale),
+                        round(constants.SCREEN_HEIGHT * scale),
+                    ),
+                )
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ def main() -> int:
         "--onefile",
         "--windowed",
         "--name",
-        "nine-mens-morris",
+        "nine-mens-morris-windows-x64",
         "--add-data",
         f"resources{os.pathsep}resources",
         "main.py",

@@ -6,6 +6,23 @@ import pygame
 import constants
 
 
+def wrap_text(text, font, max_width):
+    if not text:
+        return [""]
+    lines = []
+    current = ""
+    for word in text.split():
+        candidate = f"{current} {word}".strip()
+        if not current or font.size(candidate)[0] <= max_width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
 class HomePage:
     def __init__(self):
         self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
@@ -98,8 +115,23 @@ class InstructionsScreen:
         self.title_font = pygame.font.SysFont("Segoe UI", 48, bold=True)
         self.heading_font = pygame.font.SysFont("Segoe UI", 26, bold=True)
         self.text_font = pygame.font.SysFont("Segoe UI", 18)
-        self.back_button_rect = pygame.Rect(50, 670, 150, 40)
+        self.back_button_rect = pygame.Rect(50, 665, 150, 40)
         self.instructions = self._prepare_instructions()
+        self.content_width = constants.SCREEN_WIDTH - 140
+        self.visible_content_height = 535
+        self.max_scroll = max(0, self._content_height() - self.visible_content_height)
+
+    def _font_for_type(self, text_type):
+        if text_type in {"heading", "subheading"}:
+            return self.heading_font
+        return self.text_font
+
+    def _content_height(self):
+        total = 0
+        for text, text_type in self.instructions:
+            font = self._font_for_type(text_type)
+            total += len(wrap_text(text, font, self.content_width)) * (font.get_height() + 5)
+        return total
 
     def _prepare_instructions(self):
         lines = [
@@ -139,7 +171,7 @@ class InstructionsScreen:
             ("HUMAN VS HUMAN: Two players on one computer", "text"),
             ("EASY: Computer plays random legal moves", "text"),
             ("NORMAL: Computer tries to make and block mills", "text"),
-            ("HARD: Computer uses a simple move score", "text"),
+            ("HARD: Computer searches future moves with minimax", "text"),
             ("", "text"),
             ("WINNING STRATEGY", "heading"),
             ("- Control the center for flexibility", "text"),
@@ -163,12 +195,12 @@ class InstructionsScreen:
                     elif event.button == 4:  # Scroll up
                         self.scroll_offset = max(0, self.scroll_offset - 40)
                     elif event.button == 5:  # Scroll down
-                        self.scroll_offset += 40
+                        self.scroll_offset = min(self.max_scroll, self.scroll_offset + 40)
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
                         self.scroll_offset = max(0, self.scroll_offset - 30)
                     elif event.key == pygame.K_DOWN:
-                        self.scroll_offset += 30
+                        self.scroll_offset = min(self.max_scroll, self.scroll_offset + 30)
                     elif event.key == pygame.K_ESCAPE:
                         self.done = True
 
@@ -191,27 +223,30 @@ class InstructionsScreen:
         self.screen.blit(title_shadow, shadow_rect)
         self.screen.blit(title, title_rect)
 
-        content_area = pygame.Rect(30, 95, constants.SCREEN_WIDTH - 60, 570)
+        content_area = pygame.Rect(30, 95, constants.SCREEN_WIDTH - 60, 555)
         pygame.draw.rect(self.screen, (255, 255, 255), content_area, border_radius=10)
         pygame.draw.rect(self.screen, (200, 150, 100), content_area, width=3, border_radius=10)
         y = 110 - self.scroll_offset
-        max_y = 660
+        previous_clip = self.screen.get_clip()
+        self.screen.set_clip(content_area.inflate(-12, -12))
 
         for text, text_type in self.instructions:
             if text_type == "heading":
-                line = self.heading_font.render(text, True, (50, 50, 50))
                 font = self.heading_font
+                color = (50, 50, 50)
             elif text_type == "subheading":
-                line = self.heading_font.render(text, True, (100, 100, 100))
                 font = self.heading_font
+                color = (100, 100, 100)
             else:
-                line = self.text_font.render(text, True, (0, 0, 0))
                 font = self.text_font
+                color = (0, 0, 0)
 
-            if y > 95 and y < max_y:
-                self.screen.blit(line, (70, y))
-
-            y += font.get_height() + 5
+            for wrapped_line in wrap_text(text, font, self.content_width):
+                line = font.render(wrapped_line, True, color)
+                if y + font.get_height() > content_area.top and y < content_area.bottom:
+                    self.screen.blit(line, (70, y))
+                y += font.get_height() + 5
+        self.screen.set_clip(previous_clip)
         pygame.draw.rect(self.screen, (139, 90, 43), self.back_button_rect, border_radius=8)
         pygame.draw.rect(
             self.screen, (255, 255, 255), self.back_button_rect, width=2, border_radius=8
@@ -222,7 +257,7 @@ class InstructionsScreen:
         hint = hint_font.render(
             "Use UP/DOWN arrows or mouse wheel to scroll | ESC to go back", True, (100, 100, 100)
         )
-        self.screen.blit(hint, (15, 690))
+        self.screen.blit(hint, (230, 678))
 
 
 class Menu:

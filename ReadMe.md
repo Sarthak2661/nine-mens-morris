@@ -2,27 +2,21 @@
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue)](https://www.python.org/downloads/)
 [![Pygame-CE](https://img.shields.io/badge/pygame--ce-2.5.7-green)](https://github.com/pygame-community/pygame-ce)
+[![Quality](https://github.com/Sarthak2661/nine-mens-morris/actions/workflows/tests.yml/badge.svg)](https://github.com/Sarthak2661/nine-mens-morris/actions/workflows/tests.yml)
+[![Release](https://img.shields.io/github/v/release/Sarthak2661/nine-mens-morris)](https://github.com/Sarthak2661/nine-mens-morris/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[**Download the Windows game**](https://github.com/Sarthak2661/nine-mens-morris/releases/latest/download/nine-mens-morris-windows-x64.exe)
+| [Verify SHA-256](https://github.com/Sarthak2661/nine-mens-morris/releases/latest/download/SHA256SUMS.txt)
+| [Watch the 58-second MP4](resources/nine-mens-morris-demo.mp4)
+
+![Nine Men's Morris demonstration](resources/demo.gif)
 
 This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, save support, and three distinct computer difficulty levels.
 
 ## About Nine Men's Morris
 
 Nine Men's Morris is a strategy board game where players place and move pieces to form mills, which are three pieces in a line. When a player forms a mill, they can capture one opponent piece. The game ends when a player is reduced to two pieces or has no legal moves left.
-
-## Screenshots
-
-![Main menu](resources/main.png)
-
-![Mode selection](resources/mode.png)
-
-![Difficulty selection](resources/levels.png)
-
-![How to play](resources/howtoplay.png)
-
-![Empty board](resources/empty%20board.png)
-
-![Full board](resources/full%20board.png)
 
 ## Game Features
 
@@ -32,6 +26,36 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Save move history for review and debugging (game restoration is not implemented yet)
 - Smooth Pygame board rendering and move feedback
 - Menu screens, instructions, and in-game status display
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Input[Mouse input] --> UI[Pygame menus and board UI]
+    UI --> Engine[Game engine]
+    Engine --> Rules[Move, mill, capture, win, and draw rules]
+    Engine --> AI[Computer strategy]
+    AI --> Easy[Easy: random legal action]
+    AI --> Normal[Normal: tactical mill and threat checks]
+    AI --> Hard[Hard: minimax and alpha-beta pruning]
+    Hard --> State[Immutable 24-point search states]
+    Engine --> History[Move-history save]
+```
+
+The UI delegates every state transition to the game engine. AI search operates
+on immutable board tuples, so exploring future positions cannot mutate the live
+match. Packaging bundles the Python runtime, Pygame, source, and visual assets
+into one portable executable.
+
+## Interface
+
+| Start screen | Difficulty selection |
+|---|---|
+| ![Main menu](resources/main.png) | ![Difficulty selection](resources/levels.png) |
+
+| Hard AI tactical response | Built-in rules |
+|---|---|
+| ![Hard AI blocks a mill](resources/ai-hard.png) | ![How to play](resources/howtoplay.png) |
 
 ## Quick Start
 
@@ -128,6 +152,11 @@ When a player has exactly three pieces left, that player can move to any empty p
 - **Hard**: Uses deterministic, depth-limited minimax with alpha-beta pruning,
   board evaluation, and a transposition cache.
 
+Hard evaluates material advantage, completed and potential mills, and mobility.
+Moves and captures are ordered deterministically, making tactical benchmarks
+and regressions reproducible. Search depth is intentionally capped at three to
+keep interaction responsive during high-branching flying positions.
+
 ## Project Structure
 
 ```text
@@ -144,9 +173,13 @@ When a player has exactly three pieces left, that player can move to any empty p
 |-- quality_tests.py        # Rule, invariant, and AI legality tests
 |-- requirements.txt        # Runtime dependencies
 |-- requirements-dev.txt    # Test, lint, audit, and packaging tools
+|-- requirements-media.txt  # Optional GIF and MP4 generation tools
 |-- pyproject.toml          # Ruff, mypy, and coverage configuration
 |-- scripts/build_game.py   # Cross-platform PyInstaller build script
 |-- scripts/benchmark_ai.py # Reproducible AI quality and latency benchmark
+|-- scripts/capture_release_media.py # Fresh screenshots, GIF, and MP4
+|-- scripts/write_checksum.py # SHA-256 release checksum
+|-- release-notes/          # Versioned GitHub release notes
 |-- ReadMe.md               # Project documentation
 |-- .gitignore              # Git ignore rules
 |-- .github/                # GitHub workflows and templates
@@ -161,10 +194,20 @@ Run the full test suite:
 python -m unittest discover -p "*tests.py" -v
 ```
 
-The test suite covers game rules, draw handling, complete phase transitions,
+The 58-test suite covers game rules, draw handling, complete phase transitions,
 endgame behavior, GUI behavior, state invariants, capture limits, AI legality,
 and tactical positions for winning, blocking, capturing, and flying. CI enforces
 at least 90% branch coverage across the game and AI engines.
+
+| Quality gate | Current result |
+|---|---:|
+| Automated tests | 58 passing |
+| Game and AI branch coverage | 98% |
+| AI legal-action rate | 100% on benchmark fixtures |
+| Ruff formatting and linting | Pass |
+| mypy type checking | Pass |
+| Runtime dependency audit | No known vulnerabilities |
+| Clean Windows package smoke test | Pass |
 
 Compare legal-action rate, tactical success, mean move latency, and
 95th-percentile latency across all three difficulties with:
@@ -200,7 +243,11 @@ Build the Windows executable with:
 
 ```bash
 python scripts/build_game.py
+python scripts/write_checksum.py
 ```
+
+The portable output is `dist/nine-mens-morris-windows-x64.exe`. Python is not
+required on the computer that runs the packaged game.
 
 GitHub Actions blocks changes that fail linting, formatting, type checking,
 tests, coverage, dependency auditing, Windows packaging, or packaged-app
@@ -222,6 +269,16 @@ startup.
 - Python unittest
 - Ruff, mypy, coverage, and pip-audit
 - PyInstaller
+
+## Known Limitations
+
+- Save writes move history but cannot restore a match yet.
+- Hard AI is depth-limited; it is intentionally responsive rather than perfect.
+- The Windows executable is not code-signed and may trigger SmartScreen.
+- The release is a portable executable, not an installer.
+- Online multiplayer, sound, and controller input are not implemented.
+- The interface uses a 900 x 720 logical canvas. Automated rendering checks cover
+  100%, 125%, and 150% scaling, but unusual accessibility font overrides may vary.
 
 ## Future Enhancements
 

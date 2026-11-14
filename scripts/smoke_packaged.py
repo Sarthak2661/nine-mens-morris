@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXECUTABLE = ROOT / "dist" / "nine-mens-morris.exe"
+EXECUTABLE = ROOT / "dist" / "nine-mens-morris-windows-x64.exe"
 STARTUP_SECONDS = 5
 
 
