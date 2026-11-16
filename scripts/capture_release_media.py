@@ -102,6 +102,21 @@ def render_screens() -> list[tuple[Image.Image, str, str, int]]:
         (empty_image, "Placement phase", "Place pieces and form horizontal or vertical mills", 7)
     )
 
+    accessible_gui = NineMensMorrisGUI(empty_game)
+    accessible_gui.high_contrast = True
+    accessible_gui.board_keyboard_active = True
+    accessible_gui.board_focus_index = 4
+    accessible_gui.draw_board()
+    accessible_image = save_surface(accessible_gui.screen, "high-contrast.png")
+    slides.append(
+        (
+            accessible_image,
+            "Accessible by design",
+            "High contrast, shape markers, and keyboard board focus",
+            7,
+        )
+    )
+
     tactical_game = NineMensMorrisGame(game_mode=constants.H_VS_C, difficulty=constants.HARD)
     set_board(
         tactical_game,

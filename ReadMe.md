@@ -32,12 +32,16 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Optional generated sound effects, keyboard focus, protected reset/exit actions,
   and an end-game summary with move review
 - Post-game mills, captures, missed-block, and Hard AI response-time statistics
+- Full keyboard gameplay, visible focus, high-contrast rendering, and piece shape markers
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     Input[Mouse input] --> UI[Pygame menus and board UI]
+    Keyboard[Keyboard input] --> UI
+    UI --> Display[Scaled 900 x 720 logical canvas]
+    Display --> DPI[Windows DPI and resizeable window]
     UI --> Engine[Game engine]
     Engine --> Rules[Move, mill, capture, win, and draw rules]
     Engine --> AI[Computer strategy]
@@ -46,6 +50,9 @@ flowchart LR
     AI --> Hard[Hard: minimax and alpha-beta pruning]
     Hard --> State[Immutable 24-point search states]
     Engine --> History[Versioned state and replay timeline]
+    Tag[Version tag] --> CI[Quality and Windows package]
+    CI --> Provenance[Checksum and build attestation]
+    Provenance --> Release[GitHub Release]
 ```
 
 The UI delegates every state transition to the game engine. AI search operates
@@ -70,6 +77,10 @@ into one portable executable.
 | Visual replay |
 |---|
 | ![Move-by-move review with changed pieces](resources/review.png) |
+
+| High-contrast gameplay | Display verification |
+|---|---|
+| ![High-contrast board and keyboard focus](resources/high-contrast.png) | ![Supported display matrix](resources/display-verification/display-matrix.png) |
 
 The interface uses a shared charcoal, wood, brass, and teal palette with common
 typography, spacing, panels, and interactive button states. The original v1.0.0
@@ -143,6 +154,11 @@ for visual regression comparison.
   also be copied to the clipboard.
 - Use **Tab** to move keyboard focus between controls and **Enter** or **Space**
   to activate the focused control. **Escape** closes a review or confirmation.
+- Use the arrow keys to move keyboard focus across all 24 board points and
+  **Enter** or **Space** to place, select, move, or capture.
+- Toggle high-contrast mode with the sidebar control or **F2**. Black pieces use
+  an X marker and white pieces use an inner ring, so ownership never depends on
+  black/white or red/green color differences alone.
 - Toggle generated sound feedback from the sidebar. The mute setting remains in
   effect when the current match is reset.
 - Reset and exit require confirmation. A completed match shows the result,
@@ -198,6 +214,7 @@ keep interaction responsive during high-branching flying positions.
 |-- ui_theme.py             # Shared palette, typography, spacing, panels, and buttons
 |-- sound_feedback.py       # Generated move, mill, capture, and completion tones
 |-- game_persistence.py     # Versioned JSON save/load and validation boundary
+|-- display.py              # DPI-aware resizeable logical window setup
 |-- constants.py            # Game constants and configuration
 |-- BL_tests.py             # Business logic unit tests
 |-- GUI_tests.py            # GUI unit tests
@@ -211,6 +228,7 @@ keep interaction responsive during high-branching flying positions.
 |-- scripts/build_game.py   # Cross-platform PyInstaller build script
 |-- scripts/benchmark_ai.py # Reproducible AI quality and latency benchmark
 |-- scripts/capture_release_media.py # Fresh screenshots, GIF, and MP4
+|-- scripts/verify_display.py # Viewport, DPI, and high-contrast capture matrix
 |-- scripts/write_checksum.py # SHA-256 release checksum
 |-- release-notes/          # Versioned GitHub release notes
 |-- ReadMe.md               # Project documentation
@@ -227,7 +245,7 @@ Run the full test suite:
 python -m unittest discover -p "*tests.py" -v
 ```
 
-The 76-test suite covers game rules, draw handling, complete phase transitions,
+The 79-test suite covers game rules, draw handling, complete phase transitions,
 endgame behavior, GUI behavior, state invariants, capture limits, AI legality,
 save/resume integrity, corrupt saves, visual replay, and tactical positions for
 winning, blocking, capturing, flying, and draw-aware decisions. CI enforces
@@ -235,7 +253,7 @@ at least 90% branch coverage across the game and AI engines.
 
 | Quality gate | Current result |
 |---|---:|
-| Automated tests | 76 passing |
+| Automated tests | 79 passing |
 | Game and AI branch coverage | 97% |
 | AI legal-action rate | 100% on benchmark fixtures |
 | Ruff formatting and linting | Pass |
@@ -287,6 +305,28 @@ GitHub Actions blocks changes that fail linting, formatting, type checking,
 tests, coverage, dependency auditing, Windows packaging, or packaged-app
 startup.
 
+## Display Verification
+
+The game uses a stable 900 x 720 logical canvas with resizeable, DPI-aware
+presentation. Automated captures cover 800 x 640, 1366 x 768, and 1920 x 1080
+in standard and high-contrast modes. Scale-factor checks cover 100%, 125%, and
+150%. See the [display verification procedure](docs/display-verification.md).
+
+## Release Process
+
+Pushing a version tag such as `v1.1.0` starts `.github/workflows/release.yml`.
+The workflow reruns every quality gate, builds and smoke-tests the Windows
+executable, generates `SHA256SUMS.txt`, records GitHub build-provenance
+attestations, and publishes both files to a GitHub Release.
+
+```bash
+git tag -a v1.1.0 -m "Nine Men's Morris v1.1.0"
+git push origin v1.1.0
+```
+
+An installer and code signing are intentionally deferred until the portable
+build has demonstrated stable usage.
+
 ## Rules Implemented
 
 - Mills are horizontal or vertical only.
@@ -310,9 +350,9 @@ startup.
 - The Windows executable is not code-signed and may trigger SmartScreen.
 - The release is a portable executable, not an installer.
 - Online multiplayer and controller input are not implemented.
-- The minimum supported logical resolution is 900 x 720. Automated surface-rendering
-  checks target Windows scaling at 100%, 125%, and 150%; unusual accessibility font
-  overrides and operating-system DPI behavior still require release-time manual checks.
+- The smallest supported window is 800 x 640. Automated rendering checks target
+  Windows scaling at 100%, 125%, and 150%; each tagged release still requires the
+  documented manual DPI check on Windows.
 
 ## Future Enhancements
 
