@@ -21,6 +21,7 @@ TEAL_BRIGHT = (88, 194, 181)
 SUCCESS = (82, 164, 118)
 WARNING = (214, 156, 70)
 DANGER = (185, 78, 72)
+DISABLED = (55, 62, 68)
 
 BORDER = (74, 82, 89)
 BORDER_WARM = (111, 83, 54)
@@ -69,6 +70,10 @@ def draw_button(
     *,
     variant: str = "primary",
     hovered: bool | None = None,
+    pressed: bool | None = None,
+    focused: bool = False,
+    enabled: bool = True,
+    icon: str | None = None,
 ) -> None:
     styles = {
         "primary": (TEAL, TEAL_BRIGHT, (10, 27, 27)),
@@ -81,15 +86,73 @@ def draw_button(
     base, hover, text_color = styles[variant]
     if hovered is None:
         hovered = rect.collidepoint(pygame.mouse.get_pos())
-    fill = hover if hovered else base
+    if pressed is None:
+        pressed = hovered and pygame.mouse.get_pressed()[0]
+    if not enabled:
+        hovered = False
+        pressed = False
+        fill = DISABLED
+        text_color = TEXT_MUTED
+    else:
+        fill = hover if hovered else base
+        if pressed:
+            fill = mix(fill, SHADOW, 0.22)
 
+    draw_rect = rect.move(0, 1) if pressed else rect
     pygame.draw.rect(surface, SHADOW, rect.move(0, 3), border_radius=RADIUS_MEDIUM)
-    pygame.draw.rect(surface, fill, rect, border_radius=RADIUS_MEDIUM)
-    border = BRASS_BRIGHT if hovered else mix(fill, TEXT_PRIMARY, 0.35)
-    pygame.draw.rect(surface, border, rect, width=1, border_radius=RADIUS_MEDIUM)
+    pygame.draw.rect(surface, fill, draw_rect, border_radius=RADIUS_MEDIUM)
+    border = BRASS_BRIGHT if hovered or focused else mix(fill, TEXT_PRIMARY, 0.35)
+    border_width = 2 if focused else 1
+    pygame.draw.rect(surface, border, draw_rect, width=border_width, border_radius=RADIUS_MEDIUM)
 
     label = text_font.render(text, True, text_color)
-    surface.blit(label, label.get_rect(center=rect.center))
+    label_rect = label.get_rect(center=draw_rect.center)
+    if icon:
+        label_rect.x += 9
+        draw_icon(surface, icon, (draw_rect.left + 17, draw_rect.centery), text_color)
+    surface.blit(label, label_rect)
+
+
+def draw_icon(
+    surface: pygame.Surface,
+    icon: str,
+    center: tuple[int, int],
+    color: tuple[int, int, int],
+) -> None:
+    x, y = center
+    if icon == "reset":
+        pygame.draw.arc(surface, color, pygame.Rect(x - 8, y - 8, 16, 16), 0.5, 5.6, 2)
+        pygame.draw.polygon(surface, color, [(x + 6, y - 7), (x + 10, y - 6), (x + 8, y - 2)])
+    elif icon == "export":
+        pygame.draw.line(surface, color, (x, y - 8), (x, y + 3), 2)
+        pygame.draw.polygon(surface, color, [(x - 4, y), (x + 4, y), (x, y + 5)])
+        pygame.draw.line(surface, color, (x - 7, y + 8), (x + 7, y + 8), 2)
+    elif icon == "save":
+        pygame.draw.rect(surface, color, pygame.Rect(x - 8, y - 8, 16, 16), width=2)
+        pygame.draw.rect(surface, color, pygame.Rect(x - 4, y - 7, 8, 5), width=2)
+        pygame.draw.rect(surface, color, pygame.Rect(x - 4, y + 2, 8, 5), width=2)
+    elif icon in {"sound", "mute"}:
+        pygame.draw.polygon(
+            surface,
+            color,
+            [
+                (x - 8, y - 3),
+                (x - 4, y - 3),
+                (x + 1, y - 8),
+                (x + 1, y + 8),
+                (x - 4, y + 3),
+                (x - 8, y + 3),
+            ],
+        )
+        if icon == "sound":
+            pygame.draw.arc(surface, color, pygame.Rect(x - 1, y - 7, 13, 14), -0.9, 0.9, 2)
+        else:
+            pygame.draw.line(surface, color, (x + 4, y - 5), (x + 11, y + 5), 2)
+            pygame.draw.line(surface, color, (x + 11, y - 5), (x + 4, y + 5), 2)
+    elif icon == "exit":
+        pygame.draw.rect(surface, color, pygame.Rect(x - 8, y - 8, 10, 16), width=2)
+        pygame.draw.line(surface, color, (x - 1, y), (x + 9, y), 2)
+        pygame.draw.polygon(surface, color, [(x + 5, y - 4), (x + 10, y), (x + 5, y + 4)])
 
 
 def draw_setup_backdrop(surface: pygame.Surface, title: str, subtitle: str) -> None:

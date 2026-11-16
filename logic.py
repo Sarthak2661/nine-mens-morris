@@ -1,8 +1,11 @@
-import os
 from copy import deepcopy
+from pathlib import Path
+from time import perf_counter
+from typing import Any
 
 import constants
 from ai import MorrisAI
+from game_persistence import SaveGameError, load_payload, save_payload
 
 
 class NineMensMorrisGame:
@@ -27,6 +30,52 @@ class NineMensMorrisGame:
         self.moves_without_capture = 0
         self.position_counts = {}
         self.ai = MorrisAI(depth_limit=constants.HARD_AI_DEPTH)
+        self.stats = self._empty_stats()
+        self.history = [self._history_snapshot("Match started")]
+
+    @staticmethod
+    def _empty_stats():
+        return {
+            "mills_formed": {"1": 0, "2": 0},
+            "captures": {"1": 0, "2": 0},
+            "missed_blocks": {"1": 0, "2": 0},
+            "hard_ai_times_ms": [],
+        }
+
+    def board_tuple(self):
+        return tuple(self.CURRENT_POSITION[row][col] for row, col in constants.VALID_POINTS)
+
+    def _history_snapshot(self, label):
+        return {
+            "label": label,
+            "board": list(self.board_tuple()),
+            "phase": self.phase,
+            "turn": self.turn,
+            "is_remove_piece": self.is_remove_piece,
+            "play1_pieces": self.play1_pieces,
+            "play2_pieces": self.play2_pieces,
+            "play1_counter": self.play1_counter,
+            "play2_counter": self.play2_counter,
+            "over": self.over,
+            "message": self.message,
+            "draw_reason": self.draw_reason,
+        }
+
+    def _append_history_snapshot(self, label=None):
+        self.history.append(self._history_snapshot(label or self.move_made or "Position updated"))
+
+    def _immediate_threat_count(self, board, player):
+        if self.phase == constants.PHASE1:
+            return len(self.ai.immediate_placement_mills(board, player))
+        return len(self.ai.immediate_mill_moves(board, player))
+
+    def _record_missed_block(self, before_board, player):
+        opponent = constants.PLAY2 if player == constants.PLAY1 else constants.PLAY1
+        before = self._immediate_threat_count(before_board, opponent)
+        after = self._immediate_threat_count(self.board_tuple(), opponent)
+        if before and after:
+            key = str(player)
+            self.stats["missed_blocks"][key] += 1
 
     def get_turn(self):
         return self.turn
@@ -152,18 +201,25 @@ class NineMensMorrisGame:
             self.last_error = "Game is already over."
             return False
 
+        before_board = self.board_tuple()
+        acting_player = self.turn
         if self.phase == constants.PHASE1:
             moved = self.place_piece(row, col, self.turn)
             if not moved:
                 return False
             self.record_move(self.get_move(row, col))
             if self.is_mill(row, col, self.turn):
+                self.stats["mills_formed"][str(self.turn)] += 1
                 self.message = (
                     self.get_player_from_const(self.turn) + ": " + constants.REMOVE_MESSAGE
                 )
                 self.is_remove_piece = True
+                self._record_missed_block(before_board, acting_player)
+                self._append_history_snapshot()
                 return True
             self.change_turn()
+            self._record_missed_block(before_board, acting_player)
+            self._append_history_snapshot()
             return True
 
         if self.phase == constants.PHASE2:
@@ -176,12 +232,17 @@ class NineMensMorrisGame:
             self.record_move(self.get_move_text(row, col, new_row, new_col))
             self.moves_without_capture += 1
             if self.is_mill(new_row, new_col, self.turn):
+                self.stats["mills_formed"][str(self.turn)] += 1
                 self.message = (
                     self.get_player_from_const(self.turn) + ": " + constants.REMOVE_MESSAGE
                 )
                 self.is_remove_piece = True
+                self._record_missed_block(before_board, acting_player)
+                self._append_history_snapshot()
                 return True
             self.change_turn()
+            self._record_missed_block(before_board, acting_player)
+            self._append_history_snapshot()
             return True
 
         self.last_error = "Unsupported game phase."
@@ -332,10 +393,12 @@ class NineMensMorrisGame:
 
         self.CURRENT_POSITION[row][col] = constants.BLANK
         self.update_pieces(target)
+        self.stats["captures"][str(remover)] += 1
         self.is_remove_piece = False
         self.moves_without_capture = 0
         self.record_move("x" + self.get_move(row, col))
         self.change_turn()
+        self._append_history_snapshot()
         return True
 
     def is_computer_turn(self):
@@ -345,6 +408,7 @@ class NineMensMorrisGame:
         if not self.is_computer_turn():
             return False
 
+        started = perf_counter()
         if self.is_remove_piece:
             pieces = self.removable_pieces(constants.PLAY1)
             if pieces:
@@ -353,13 +417,18 @@ class NineMensMorrisGame:
                     constants.PLAY2,
                     self.difficulty,
                     self.phase,
+                    position_counts=self.position_counts,
                 )
-                return self.remove_piece(row, col, player=constants.PLAY2)
+                moved = self.remove_piece(row, col, player=constants.PLAY2)
+                self._record_hard_ai_time(started)
+                return moved
             return False
 
         if self.phase == constants.PHASE1:
             move = self._best_placement(constants.PLAY2)
-            return self.make_move(*move)
+            moved = self.make_move(*move)
+            self._record_hard_ai_time(started)
+            return moved
 
         if self.phase == constants.PHASE2:
             legal_moves = self.get_all_legal_moves(constants.PLAY2)
@@ -368,7 +437,9 @@ class NineMensMorrisGame:
                 self.message = "Player 1 wins the game!"
                 return False
             start, end = self._best_movement(legal_moves, constants.PLAY2)
-            return self.make_move(start[0], start[1], end[0], end[1])
+            moved = self.make_move(start[0], start[1], end[0], end[1])
+            self._record_hard_ai_time(started)
+            return moved
 
         return False
 
@@ -386,10 +457,105 @@ class NineMensMorrisGame:
             self.ai.board_from_matrix(self.CURRENT_POSITION),
             player,
             self.difficulty,
+            position_counts=self.position_counts,
+            moves_without_capture=self.moves_without_capture,
         )
 
-    def save_game(self):
-        if os.path.exists(constants.GAME_STATE_FILE):
-            os.remove(constants.GAME_STATE_FILE)
-        with open(constants.GAME_STATE_FILE, "w", encoding="utf-8") as state_file:
-            state_file.write(",".join(self.moves_made))
+    def _record_hard_ai_time(self, started):
+        if self.difficulty == constants.HARD:
+            self.stats["hard_ai_times_ms"].append(round((perf_counter() - started) * 1000, 2))
+
+    def _serializable_position_counts(self):
+        return [
+            {"board": list(board), "turn": turn, "count": count}
+            for (board, turn), count in self.position_counts.items()
+        ]
+
+    def to_save_data(self) -> dict[str, Any]:
+        return {
+            "phase": self.phase,
+            "turn": self.turn,
+            "game_mode": self.game_mode,
+            "difficulty": self.difficulty,
+            "board": list(self.board_tuple()),
+            "is_remove_piece": self.is_remove_piece,
+            "counter": self.counter,
+            "play1_pieces": self.play1_pieces,
+            "play2_pieces": self.play2_pieces,
+            "play1_counter": self.play1_counter,
+            "play2_counter": self.play2_counter,
+            "message": self.message,
+            "move_made": self.move_made,
+            "over": self.over,
+            "moves_made": list(self.moves_made),
+            "draw_reason": self.draw_reason,
+            "moves_without_capture": self.moves_without_capture,
+            "position_counts": self._serializable_position_counts(),
+            "history": deepcopy(self.history),
+            "stats": deepcopy(self.stats),
+        }
+
+    def save_game(self, path: str | Path | None = None):
+        return save_payload(self.to_save_data(), path)
+
+    @classmethod
+    def load_game(cls, path: str | Path | None = None):
+        data = load_payload(path)
+        game = cls(game_mode=data["game_mode"], difficulty=data["difficulty"])
+        game.phase = data["phase"]
+        game.turn = data["turn"]
+        game.CURRENT_POSITION = deepcopy(constants.CURRENT_POSITION)
+        for point, value in zip(constants.VALID_POINTS, data["board"], strict=True):
+            game.CURRENT_POSITION[point[0]][point[1]] = value
+        game.is_remove_piece = data["is_remove_piece"]
+        game.counter = data["counter"]
+        game.play1_pieces = data["play1_pieces"]
+        game.play2_pieces = data["play2_pieces"]
+        game.play1_counter = data["play1_counter"]
+        game.play2_counter = data["play2_counter"]
+        game.message = data["message"]
+        game.move_made = data["move_made"]
+        game.over = data["over"]
+        game.moves_made = list(data["moves_made"])
+        game.last_error = ""
+        game.draw_reason = data["draw_reason"]
+        game.moves_without_capture = data["moves_without_capture"]
+        game.position_counts = {
+            (tuple(item["board"]), item["turn"]): item["count"] for item in data["position_counts"]
+        }
+        game.history = deepcopy(data["history"])
+        game.stats = deepcopy(data["stats"])
+        game._validate_loaded_invariants()
+        return game
+
+    def _validate_loaded_invariants(self):
+        for player, pieces, counter in (
+            (constants.PLAY1, self.play1_pieces, self.play1_counter),
+            (constants.PLAY2, self.play2_pieces, self.play2_counter),
+        ):
+            unplaced = constants.TOTAL_MENS - counter
+            if self.get_on_board_count(player) + unplaced != pieces:
+                raise SaveGameError("The saved match has inconsistent piece counts.")
+
+    def game_summary(self):
+        if self.draw_reason:
+            result = self.draw_reason
+        elif self.over:
+            result = self.message
+        else:
+            result = "Match in progress"
+        times = self.stats["hard_ai_times_ms"]
+        average_time = sum(times) / len(times) if times else 0
+        return "\n".join(
+            (
+                "Nine Men's Morris match summary",
+                f"Result: {result}",
+                f"Recorded actions: {len(self.moves_made)}",
+                f"Player 1 mills formed: {self.stats['mills_formed']['1']}",
+                f"Player 2 mills formed: {self.stats['mills_formed']['2']}",
+                f"Player 1 captures: {self.stats['captures']['1']}",
+                f"Player 2 captures: {self.stats['captures']['2']}",
+                f"Missed immediate blocks: {sum(self.stats['missed_blocks'].values())}",
+                f"Average Hard AI response: {average_time:.0f} ms",
+            )
+        )

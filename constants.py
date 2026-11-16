@@ -151,7 +151,8 @@ H_VS_H = 0
 H_VS_C = 1
 
 POSITIONS = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g"}
-GAME_STATE_FILE = "game_state.txt"
+SAVE_SCHEMA_VERSION = 1
+GAME_STATE_FILE = "saves/nine-mens-morris-save.json"
 
 # Game difficulty levels for the computer player
 EASY = 0
@@ -162,3 +163,8 @@ HARD_AI_DEPTH = 3
 # Animation
 ANIMATION_DURATION = 300  # milliseconds
 ANIMATION_SPEED = 8  # pixels per frame
+PLACEMENT_ANIMATION_DURATION = 220
+CAPTURE_ANIMATION_DURATION = 240
+MILL_FEEDBACK_DURATION = 700
+MINIMUM_THINKING_DISPLAY_MS = 90
+AI_MOVE_FEEDBACK_MS = 120

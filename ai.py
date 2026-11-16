@@ -12,6 +12,7 @@ Move: TypeAlias = tuple[Point, Point]
 IndexMove: TypeAlias = tuple[int, int]
 Board: TypeAlias = tuple[int, ...]
 Successor: TypeAlias = tuple[IndexMove, int | None, Board]
+PositionCounts: TypeAlias = dict[tuple[Board, int], int]
 
 
 @dataclass(frozen=True)
@@ -43,7 +44,7 @@ class MorrisAI:
         self.mills = tuple(
             tuple(self.point_index[point] for point in mill) for mill in constants.MILLS
         )
-        self._movement_cache: dict[tuple[Board, int, int, int], int] = {}
+        self._movement_cache: dict[tuple[object, ...], int] = {}
         self._placement_cache: dict[tuple[Board, int, int, int], int] = {}
         self._nodes = 0
         self._cache_hits = 0
@@ -134,6 +135,9 @@ class MorrisAI:
         player: int,
         difficulty: int,
         rng: random.Random | None = None,
+        *,
+        position_counts: PositionCounts | None = None,
+        moves_without_capture: int = 0,
     ) -> Move:
         legal = self.legal_moves(board, player)
         if not legal:
@@ -142,7 +146,15 @@ class MorrisAI:
             return self.point_move((rng or random).choice(legal))
         if difficulty == constants.NORMAL:
             return self.point_move(self._choose_normal_movement(board, player, legal))
-        return self.point_move(self._choose_hard_movement(board, player, legal))
+        return self.point_move(
+            self._choose_hard_movement(
+                board,
+                player,
+                legal,
+                position_counts=position_counts,
+                moves_without_capture=moves_without_capture,
+            )
+        )
 
     def choose_capture(
         self,
@@ -151,6 +163,8 @@ class MorrisAI:
         difficulty: int,
         phase: int,
         rng: random.Random | None = None,
+        *,
+        position_counts: PositionCounts | None = None,
     ) -> Point:
         captures = self.removable_indices(board, self.opponent(player))
         if not captures:
@@ -180,6 +194,8 @@ class MorrisAI:
                 best_score,
                 self.WIN_SCORE * 2,
                 player,
+                position_counts=position_counts,
+                moves_without_capture=0,
             )
             if score > best_score:
                 best_score = score
@@ -210,23 +226,36 @@ class MorrisAI:
 
         return min(scored, key=lambda item: (item[1], item[2]))[3]
 
-    def _choose_hard_movement(self, board: Board, player: int, legal: list[IndexMove]) -> IndexMove:
+    def _choose_hard_movement(
+        self,
+        board: Board,
+        player: int,
+        legal: list[IndexMove],
+        *,
+        position_counts: PositionCounts | None = None,
+        moves_without_capture: int = 0,
+    ) -> IndexMove:
         started = perf_counter()
         self._start_search()
         best_move = legal[0]
         best_score = -self.WIN_SCORE * 2
         for move in legal:
-            scores = [
-                self._minimax(
-                    child,
-                    self.opponent(player),
-                    self.depth_limit - 1,
-                    best_score,
-                    self.WIN_SCORE * 2,
-                    player,
+            scores = []
+            for _, capture, child in self._movement_outcomes(board, player, only_move=move):
+                scores.append(
+                    self._minimax(
+                        child,
+                        self.opponent(player),
+                        self.depth_limit - 1,
+                        best_score,
+                        self.WIN_SCORE * 2,
+                        player,
+                        position_counts=position_counts,
+                        moves_without_capture=(
+                            0 if capture is not None else moves_without_capture + 1
+                        ),
+                    )
                 )
-                for _, _, child in self._movement_outcomes(board, player, only_move=move)
-            ]
             score = max(scores)
             if score > best_score:
                 best_score = score
@@ -239,6 +268,13 @@ class MorrisAI:
             move
             for move in self.legal_moves(board, player)
             if self._move_forms_mill(board, move, player)
+        ]
+
+    def immediate_placement_mills(self, board: Board, player: int) -> list[int]:
+        return [
+            index
+            for index in self.legal_placements(board)
+            if self._placement_forms_mill(board, index, player)
         ]
 
     def removable_indices(self, board: Board, player: int) -> list[int]:
@@ -266,15 +302,33 @@ class MorrisAI:
         alpha: int,
         beta: int,
         ai_player: int,
+        *,
+        position_counts: PositionCounts | None = None,
+        moves_without_capture: int = 0,
     ) -> int:
         self._nodes += 1
+        history = dict(position_counts or {})
+        state_key = (board, player)
+        history[state_key] = history.get(state_key, 0) + 1
         winner = self._winner(board, player)
         if winner is not None:
             return self.WIN_SCORE + depth if winner == ai_player else -self.WIN_SCORE - depth
+        if (
+            history[state_key] >= constants.THREEFOLD_REPETITION_COUNT
+            or moves_without_capture >= constants.MAX_MOVES_WITHOUT_CAPTURE
+        ):
+            return 0
         if depth == 0:
             return self.evaluate(board, ai_player)
 
-        key = (board, player, depth, ai_player)
+        key = (
+            board,
+            player,
+            depth,
+            ai_player,
+            moves_without_capture,
+            self._history_signature(history),
+        )
         cached = self._movement_cache.get(key)
         if cached is not None:
             self._cache_hits += 1
@@ -283,7 +337,7 @@ class MorrisAI:
         maximizing = player == ai_player
         value = -self.WIN_SCORE * 2 if maximizing else self.WIN_SCORE * 2
         completed = True
-        for _, _, child in self._movement_outcomes(board, player):
+        for _, capture, child in self._movement_outcomes(board, player):
             score = self._minimax(
                 child,
                 self.opponent(player),
@@ -291,6 +345,8 @@ class MorrisAI:
                 alpha,
                 beta,
                 ai_player,
+                position_counts=history,
+                moves_without_capture=(0 if capture is not None else moves_without_capture + 1),
             )
             if maximizing:
                 value = max(value, score)
@@ -305,6 +361,15 @@ class MorrisAI:
         if completed:
             self._movement_cache[key] = value
         return value
+
+    @staticmethod
+    def _history_signature(position_counts: PositionCounts) -> tuple[tuple[Board, int, int], ...]:
+        return tuple(
+            sorted(
+                (board, player, min(count, constants.THREEFOLD_REPETITION_COUNT))
+                for (board, player), count in position_counts.items()
+            )
+        )
 
     def _placement_minimax(
         self,
