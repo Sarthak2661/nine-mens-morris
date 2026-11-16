@@ -5,6 +5,7 @@ import pygame
 
 import constants
 import ui_theme as theme
+from game_persistence import save_status
 
 
 def wrap_text(text, font, max_width):
@@ -30,12 +31,21 @@ class HomePage:
         pygame.display.set_caption("Nine Men's Morris")
         self.clock = pygame.time.Clock()
         self.started = False
+        self.selected_action = None
         self.show_instructions = False
         self.title_font = theme.font(72, bold=True)
         self.subtitle_font = theme.font(28)
         self.button_font = theme.font(22, bold=True)
-        self.start_button_rect = pygame.Rect(175, 480, 300, 70)
-        self.how_to_play_button_rect = pygame.Rect(525, 480, 250, 70)
+        self.start_button_rect = pygame.Rect(80, 480, 230, 70)
+        self.resume_button_rect = pygame.Rect(335, 480, 230, 70)
+        self.how_to_play_button_rect = pygame.Rect(590, 480, 230, 70)
+        self.button_rects = [
+            self.start_button_rect,
+            self.resume_button_rect,
+            self.how_to_play_button_rect,
+        ]
+        self.resume_enabled, self.resume_status = save_status()
+        self.focused_index = 0
 
         self.background = None
         try:
@@ -57,13 +67,30 @@ class HomePage:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.start_button_rect.collidepoint(event.pos):
                         self.started = True
+                        self.selected_action = "new"
+                    elif self.resume_button_rect.collidepoint(event.pos) and self.resume_enabled:
+                        self.started = True
+                        self.selected_action = "resume"
                     elif self.how_to_play_button_rect.collidepoint(event.pos):
                         instructions = InstructionsScreen()
                         instructions.display()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_TAB:
+                        self.focused_index = (self.focused_index + 1) % len(self.button_rects)
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if self.focused_index == 0:
+                            self.started = True
+                            self.selected_action = "new"
+                        elif self.focused_index == 1 and self.resume_enabled:
+                            self.started = True
+                            self.selected_action = "resume"
+                        else:
+                            InstructionsScreen().display()
 
             self.draw()
             pygame.display.flip()
             self.clock.tick(30)
+        return self.selected_action or "new"
 
     def draw(self):
         if self.background:
@@ -93,11 +120,35 @@ class HomePage:
         )
         self.screen.blit(desc, desc.get_rect(center=(constants.SCREEN_WIDTH // 2, 330)))
 
-        self.draw_button(self.start_button_rect, "START GAME", "primary")
-        self.draw_button(self.how_to_play_button_rect, "HOW TO PLAY", "secondary")
+        self.draw_button(self.start_button_rect, "START GAME", "primary", focused_index=0)
+        theme.draw_button(
+            self.screen,
+            self.resume_button_rect,
+            "RESUME MATCH",
+            self.button_font,
+            variant="brass",
+            focused=self.focused_index == 1,
+            enabled=self.resume_enabled,
+        )
+        self.draw_button(
+            self.how_to_play_button_rect,
+            "HOW TO PLAY",
+            "secondary",
+            focused_index=2,
+        )
+        if not self.resume_enabled and self.resume_status != "No saved match was found.":
+            status = theme.font(14).render(self.resume_status, True, theme.WARNING)
+            self.screen.blit(status, status.get_rect(center=(450, 575)))
 
-    def draw_button(self, rect, text, variant):
-        theme.draw_button(self.screen, rect, text, self.button_font, variant=variant)
+    def draw_button(self, rect, text, variant, *, focused_index):
+        theme.draw_button(
+            self.screen,
+            rect,
+            text,
+            self.button_font,
+            variant=variant,
+            focused=focused_index == self.focused_index,
+        )
 
 
 class InstructionsScreen:
@@ -111,6 +162,7 @@ class InstructionsScreen:
         self.heading_font = theme.font(26, bold=True)
         self.text_font = theme.font(18)
         self.back_button_rect = pygame.Rect(50, 665, 150, 40)
+        self.focused = True
         self.instructions = self._prepare_instructions()
         self.content_width = constants.SCREEN_WIDTH - 140
         self.visible_content_height = 535
@@ -198,6 +250,8 @@ class InstructionsScreen:
                         self.scroll_offset = min(self.max_scroll, self.scroll_offset + 30)
                     elif event.key == pygame.K_ESCAPE:
                         self.done = True
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.done = True
 
             self.draw()
             pygame.display.flip()
@@ -261,6 +315,7 @@ class InstructionsScreen:
             "< BACK",
             self.text_font,
             variant="secondary",
+            focused=self.focused,
         )
         hint_font = theme.font(14)
         hint = hint_font.render(
@@ -282,6 +337,8 @@ class Menu:
         self.small_font = theme.font(20)
         self.human_vs_human_button_rect = pygame.Rect(200, 300, 500, 70)
         self.human_vs_computer_button_rect = pygame.Rect(200, 420, 500, 70)
+        self.button_rects = [self.human_vs_human_button_rect, self.human_vs_computer_button_rect]
+        self.focused_index = 0
 
     def display_menu(self):
         while self.selected_option is None:
@@ -294,6 +351,13 @@ class Menu:
                         self.selected_option = constants.H_VS_H
                     elif self.human_vs_computer_button_rect.collidepoint(event.pos):
                         self.selected_option = constants.H_VS_C
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_TAB:
+                        self.focused_index = (self.focused_index + 1) % len(self.button_rects)
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.selected_option = (
+                            constants.H_VS_H if self.focused_index == 0 else constants.H_VS_C
+                        )
 
             self.draw_menu()
             pygame.display.flip()
@@ -301,11 +365,25 @@ class Menu:
 
     def draw_menu(self):
         theme.draw_setup_backdrop(self.screen, "Select Game Mode", "Choose how you want to play")
-        self.draw_button(self.human_vs_human_button_rect, "Human vs Human", "primary")
-        self.draw_button(self.human_vs_computer_button_rect, "Human vs Computer", "secondary")
+        self.draw_button(
+            self.human_vs_human_button_rect, "Human vs Human", "primary", focused_index=0
+        )
+        self.draw_button(
+            self.human_vs_computer_button_rect,
+            "Human vs Computer",
+            "secondary",
+            focused_index=1,
+        )
 
-    def draw_button(self, rect, text, variant):
-        theme.draw_button(self.screen, rect, text, self.font, variant=variant)
+    def draw_button(self, rect, text, variant, *, focused_index):
+        theme.draw_button(
+            self.screen,
+            rect,
+            text,
+            self.font,
+            variant=variant,
+            focused=focused_index == self.focused_index,
+        )
 
     def get_selected_option(self):
         return self.selected_option
@@ -320,9 +398,11 @@ class DifficultySelector:
         self.title_font = theme.font(52, bold=True)
         self.font = theme.font(23, bold=True)
         self.small_font = theme.font(20)
-        self.easy_button_rect = pygame.Rect(200, 280, 500, 70)
-        self.normal_button_rect = pygame.Rect(200, 385, 500, 70)
-        self.hard_button_rect = pygame.Rect(200, 490, 500, 70)
+        self.easy_button_rect = pygame.Rect(200, 245, 500, 88)
+        self.normal_button_rect = pygame.Rect(200, 365, 500, 88)
+        self.hard_button_rect = pygame.Rect(200, 485, 500, 88)
+        self.button_rects = [self.easy_button_rect, self.normal_button_rect, self.hard_button_rect]
+        self.focused_index = 1
 
     def display_selector(self):
         while self.selected_difficulty is None:
@@ -337,6 +417,15 @@ class DifficultySelector:
                         self.selected_difficulty = constants.NORMAL
                     elif self.hard_button_rect.collidepoint(event.pos):
                         self.selected_difficulty = constants.HARD
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_TAB:
+                        self.focused_index = (self.focused_index + 1) % len(self.button_rects)
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.selected_difficulty = (
+                            constants.EASY,
+                            constants.NORMAL,
+                            constants.HARD,
+                        )[self.focused_index]
 
             self.draw_selector()
             pygame.display.flip()
@@ -348,12 +437,48 @@ class DifficultySelector:
             "Select Difficulty",
             "How challenging should your opponent be?",
         )
-        self.draw_button(self.easy_button_rect, "EASY - Random moves", "success")
-        self.draw_button(self.normal_button_rect, "NORMAL - Smart play", "warning")
-        self.draw_button(self.hard_button_rect, "HARD - Stronger play", "danger")
+        descriptions = (
+            (self.easy_button_rect, "EASY", "Casual play with random legal moves", "success", 0),
+            (
+                self.normal_button_rect,
+                "NORMAL",
+                "Recognizes immediate mills and blocking threats",
+                "warning",
+                1,
+            ),
+            (
+                self.hard_button_rect,
+                "HARD",
+                "Searches multiple moves ahead and respects draw risk",
+                "danger",
+                2,
+            ),
+        )
+        for rect, title, description, variant, index in descriptions:
+            theme.draw_button(
+                self.screen,
+                rect,
+                "",
+                self.font,
+                variant=variant,
+                focused=index == self.focused_index,
+            )
+            title_surface = self.font.render(title, True, theme.TEXT_PRIMARY)
+            detail = self.small_font.render(description, True, theme.TEXT_PRIMARY)
+            self.screen.blit(
+                title_surface, title_surface.get_rect(center=(rect.centerx, rect.y + 29))
+            )
+            self.screen.blit(detail, detail.get_rect(center=(rect.centerx, rect.y + 61)))
 
-    def draw_button(self, rect, text, variant):
-        theme.draw_button(self.screen, rect, text, self.font, variant=variant)
+    def draw_button(self, rect, text, variant, *, focused_index):
+        theme.draw_button(
+            self.screen,
+            rect,
+            text,
+            theme.font(21, bold=True),
+            variant=variant,
+            focused=focused_index == self.focused_index,
+        )
 
     def get_selected_difficulty(self):
         return self.selected_difficulty

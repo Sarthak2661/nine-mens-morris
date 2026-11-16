@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 
@@ -244,8 +245,11 @@ class TestNineMensMorrisGame(unittest.TestCase):
         self.assertTrue(self.game.make_move(4, 3))
         self.game.save_game()
         with open(constants.GAME_STATE_FILE, "r", encoding="utf-8") as state_file:
-            data = state_file.read()
-        self.assertEqual(data, "d3")
+            data = json.load(state_file)
+        self.assertEqual(data["schema_version"], constants.SAVE_SCHEMA_VERSION)
+        self.assertEqual(data["game"]["moves_made"], ["d3"])
+        resumed = NineMensMorrisGame.load_game()
+        self.assertEqual(resumed.to_save_data(), self.game.to_save_data())
         os.remove(constants.GAME_STATE_FILE)
 
     def test_game_over_by_piece_count(self):

@@ -4,19 +4,23 @@ from logic import NineMensMorrisGame
 from menu import DifficultySelector, HomePage, Menu
 
 if __name__ == "__main__":
-    home = HomePage()
-    home.display()
+    while True:
+        home = HomePage()
+        action = home.display()
 
-    menu = Menu()
-    menu.display_menu()
-    selected_option = menu.get_selected_option()
+        if action == "resume":
+            game = NineMensMorrisGame.load_game()
+        else:
+            menu = Menu()
+            menu.display_menu()
+            selected_option = menu.get_selected_option()
 
-    difficulty = None
-    if selected_option == constants.H_VS_C:
-        difficulty_selector = DifficultySelector()
-        difficulty_selector.display_selector()
-        difficulty = difficulty_selector.get_selected_difficulty()
+            difficulty = None
+            if selected_option == constants.H_VS_C:
+                difficulty_selector = DifficultySelector()
+                difficulty_selector.display_selector()
+                difficulty = difficulty_selector.get_selected_difficulty()
 
-    game = NineMensMorrisGame(game_mode=selected_option, difficulty=difficulty)
-    gui = NineMensMorrisGUI(game)
-    gui.main_loop()
+            game = NineMensMorrisGame(game_mode=selected_option, difficulty=difficulty)
+        gui = NineMensMorrisGUI(game)
+        gui.main_loop()

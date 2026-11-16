@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -271,14 +272,15 @@ class LogicQualityTests(unittest.TestCase):
     def test_save_overwrites_existing_move_history(self):
         game = NineMensMorrisGame()
         with tempfile.TemporaryDirectory() as directory:
-            state_file = os.path.join(directory, "state.txt")
+            state_file = os.path.join(directory, "state.json")
             with patch.object(constants, "GAME_STATE_FILE", state_file):
                 game.record_move("a7")
                 game.save_game()
                 game.record_move("d7")
                 game.save_game()
                 with open(state_file, encoding="utf-8") as saved:
-                    self.assertEqual(saved.read(), "a7,d7")
+                    payload = json.load(saved)
+                self.assertEqual(payload["game"]["moves_made"], ["a7", "d7"])
 
 
 if __name__ == "__main__":
