@@ -8,11 +8,11 @@
 
 [**Download the Windows game**](https://github.com/Sarthak2661/nine-mens-morris/releases/latest/download/nine-mens-morris-windows-x64.exe)
 | [Verify SHA-256](https://github.com/Sarthak2661/nine-mens-morris/releases/latest/download/SHA256SUMS.txt)
-| [Watch the 58-second MP4](resources/nine-mens-morris-demo.mp4)
+| [Watch the product walkthrough](resources/nine-mens-morris-demo.mp4)
 
 ![Nine Men's Morris demonstration](resources/demo.gif)
 
-This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, move-history export, and three distinct computer difficulty levels.
+This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with versioned save/resume, visual match review, post-game analysis, and three distinct computer difficulty levels.
 
 ## About Nine Men's Morris
 
@@ -23,9 +23,15 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Three game phases: placement, movement, and flying
 - Two game modes: human vs human and human vs computer
 - Three distinct computer difficulty levels with random, tactical, and search-based play
-- Export move history for review and debugging (game restoration is not implemented yet)
+- Versioned JSON saves with exact match resume and corrupt-file validation
+- Visual move review with previous/next navigation and changed-piece highlights
 - Smooth Pygame board rendering and move feedback
 - A shared dark visual system across menus, instructions, and the in-game status display
+- Context-aware turn guidance, legal destination cues, removable-piece highlights,
+  and mill feedback
+- Optional generated sound effects, keyboard focus, protected reset/exit actions,
+  and an end-game summary with move review
+- Post-game mills, captures, missed-block, and Hard AI response-time statistics
 
 ## Architecture
 
@@ -39,7 +45,7 @@ flowchart LR
     AI --> Normal[Normal: tactical mill and threat checks]
     AI --> Hard[Hard: minimax and alpha-beta pruning]
     Hard --> State[Immutable 24-point search states]
-    Engine --> History[Move-history save]
+    Engine --> History[Versioned state and replay timeline]
 ```
 
 The UI delegates every state transition to the game engine. AI search operates
@@ -56,6 +62,14 @@ into one portable executable.
 | Hard AI tactical response | Built-in rules |
 |---|---|
 | ![Hard AI blocks a mill](resources/ai-hard.png) | ![How to play](resources/howtoplay.png) |
+
+| Capture guidance | Match summary |
+|---|---|
+| ![Eligible capture targets](resources/capture.png) | ![End-game summary](resources/game-over.png) |
+
+| Visual replay |
+|---|
+| ![Move-by-move review with changed pieces](resources/review.png) |
 
 The interface uses a shared charcoal, wood, brass, and teal palette with common
 typography, spacing, panels, and interactive button states. The original v1.0.0
@@ -121,8 +135,18 @@ for visual regression comparison.
 - Click an empty board point to place a piece during placement.
 - Click one of your pieces, then click a valid destination to move during movement.
 - Form a mill to remove one eligible opponent piece.
-- Use the reset, export, and exit controls from the game sidebar. Export writes
-  the current move history to `game_state.txt`; it does not restore a match yet.
+- Use the reset, save, move-history, sound, and exit controls from the game sidebar.
+  Save writes a validated, versioned JSON snapshot to
+  `saves/nine-mens-morris-save.json`; **Resume Match** restores it from the home screen.
+- During move review, use **Previous** and **Next** or the left/right arrow keys.
+  Changed pieces are highlighted directly on the board. The match summary can
+  also be copied to the clipboard.
+- Use **Tab** to move keyboard focus between controls and **Enter** or **Space**
+  to activate the focused control. **Escape** closes a review or confirmation.
+- Toggle generated sound feedback from the sidebar. The mute setting remains in
+  effect when the current match is reset.
+- Reset and exit require confirmation. A completed match shows the result,
+  action and capture counts, rematch, main-menu, and move-review controls.
 
 ### Phase 1: Placement
 
@@ -155,7 +179,7 @@ When a player has exactly three pieces left, that player can move to any empty p
 - **Normal**: Takes immediate mills and detects one-move movement threats before
   selecting a blocking move.
 - **Hard**: Uses deterministic, depth-limited minimax with alpha-beta pruning,
-  board evaluation, and a transposition cache.
+  board evaluation, a transposition cache, and live repetition/no-capture context.
 
 Hard evaluates material advantage, completed and potential mills, and mobility.
 Moves and captures are ordered deterministically, making tactical benchmarks
@@ -172,11 +196,14 @@ keep interaction responsive during high-branching flying positions.
 |-- GUI.py                  # Game board rendering and in-game UI
 |-- menu.py                 # Home, mode, difficulty, and instructions screens
 |-- ui_theme.py             # Shared palette, typography, spacing, panels, and buttons
+|-- sound_feedback.py       # Generated move, mill, capture, and completion tones
+|-- game_persistence.py     # Versioned JSON save/load and validation boundary
 |-- constants.py            # Game constants and configuration
 |-- BL_tests.py             # Business logic unit tests
 |-- GUI_tests.py            # GUI unit tests
 |-- AI_tests.py             # Tactical and latency benchmark tests
 |-- quality_tests.py        # Rule, invariant, and AI legality tests
+|-- persistence_tests.py    # Save/resume, corruption, and replay tests
 |-- requirements.txt        # Runtime dependencies
 |-- requirements-dev.txt    # Test, lint, audit, and packaging tools
 |-- requirements-media.txt  # Optional GIF and MP4 generation tools
@@ -200,15 +227,16 @@ Run the full test suite:
 python -m unittest discover -p "*tests.py" -v
 ```
 
-The 60-test suite covers game rules, draw handling, complete phase transitions,
+The 76-test suite covers game rules, draw handling, complete phase transitions,
 endgame behavior, GUI behavior, state invariants, capture limits, AI legality,
-and tactical positions for winning, blocking, capturing, and flying. CI enforces
+save/resume integrity, corrupt saves, visual replay, and tactical positions for
+winning, blocking, capturing, flying, and draw-aware decisions. CI enforces
 at least 90% branch coverage across the game and AI engines.
 
 | Quality gate | Current result |
 |---|---:|
-| Automated tests | 60 passing |
-| Game and AI branch coverage | 98% |
+| Automated tests | 76 passing |
+| Game and AI branch coverage | 97% |
 | AI legal-action rate | 100% on benchmark fixtures |
 | Ruff formatting and linting | Pass |
 | mypy type checking | Pass |
@@ -227,9 +255,9 @@ capturing, and flying positions:
 
 | Difficulty | Legal actions | Tactical success | Mean latency | P95 latency |
 |---|---:|---:|---:|---:|
-| Easy | 100% | 10.4% | 0.02 ms | 0.02 ms |
+| Easy | 100% | 10.4% | 0.02 ms | 0.03 ms |
 | Normal | 100% | 100% | 0.25 ms | 0.63 ms |
-| Hard | 100% | 100% | 85.19 ms | 281.31 ms |
+| Hard | 100% | 100% | 70.51 ms | 224.31 ms |
 
 Timing varies by machine. The benchmark uses fixed seeds and deterministic
 tactical fixtures so changes remain comparable.
@@ -278,11 +306,10 @@ startup.
 
 ## Known Limitations
 
-- Export writes move history but cannot restore a match yet.
 - Hard AI is depth-limited; it is intentionally responsive rather than perfect.
 - The Windows executable is not code-signed and may trigger SmartScreen.
 - The release is a portable executable, not an installer.
-- Online multiplayer, sound, and controller input are not implemented.
+- Online multiplayer and controller input are not implemented.
 - The minimum supported logical resolution is 900 x 720. Automated surface-rendering
   checks target Windows scaling at 100%, 125%, and 150%; unusual accessibility font
   overrides and operating-system DPI behavior still require release-time manual checks.
@@ -290,12 +317,12 @@ startup.
 ## Future Enhancements
 
 - Optional light theme and player-selectable appearance settings
-- Better movement, capture, and turn-change animations
+- More elaborate movement, capture, and turn-change animations
 - Player-selected piece colors
 - Board theme customization
-- Sound effects and background music
+- Optional background music and selectable sound packs
 - Online multiplayer support
-- Game replays and statistics tracking
+- Named save slots and a searchable match archive
 - Tournament mode
 
 ## License

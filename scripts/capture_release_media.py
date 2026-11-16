@@ -73,9 +73,13 @@ def render_screens() -> list[tuple[Image.Image, str, str, int]]:
     pygame.init()
     slides: list[tuple[Image.Image, str, str, int]] = []
 
+    demo_save = NineMensMorrisGame(game_mode=constants.H_VS_C, difficulty=constants.NORMAL)
+    demo_save.make_move(0, 0)
+    demo_save.save_game()
     home = HomePage()
     home.draw()
     home_image = save_surface(home.screen, "main.png")
+    Path(constants.GAME_STATE_FILE).unlink(missing_ok=True)
     slides.append((home_image, "Nine Men's Morris", "A complete desktop strategy game", 8))
 
     mode = Menu()
@@ -119,6 +123,71 @@ def render_screens() -> list[tuple[Image.Image, str, str, int]]:
     result_image = save_surface(tactical_gui.screen, "ai-hard.png")
     slides.append(
         (result_image, "Hard AI responds", "Depth-limited minimax selects the defensive move", 9)
+    )
+
+    capture_game = NineMensMorrisGame(game_mode=constants.H_VS_H)
+    set_board(
+        capture_game,
+        {(0, 0), (0, 3), (0, 6), (6, 6)},
+        {(1, 1), (1, 3), (3, 1), (5, 5)},
+    )
+    capture_game.turn = constants.PLAY1
+    capture_game.is_remove_piece = True
+    capture_game.message = "Player 1: Remove one opponent piece"
+    capture_gui = NineMensMorrisGUI(capture_game)
+    capture_gui.start_mill_feedback(constants.PLAY1)
+    capture_gui.draw_board()
+    capture_image = save_surface(capture_gui.screen, "capture.png")
+    slides.append(
+        (capture_image, "Clear capture choices", "Eligible opponent pieces are highlighted", 7)
+    )
+
+    confirm_game = NineMensMorrisGame(game_mode=constants.H_VS_H)
+    confirm_game.make_move(0, 0)
+    confirm_gui = NineMensMorrisGUI(confirm_game)
+    confirm_gui.confirm_action = "reset"
+    confirm_gui.draw_board()
+    confirm_image = save_surface(confirm_gui.screen, "confirmation.png")
+    slides.append(
+        (confirm_image, "Protected controls", "Reset and exit actions require confirmation", 7)
+    )
+
+    complete_game = NineMensMorrisGame(game_mode=constants.H_VS_H)
+    set_board(
+        complete_game,
+        {(0, 0), (0, 3), (0, 6), (6, 6)},
+        {(1, 1), (1, 3)},
+    )
+    complete_game.over = True
+    complete_game.message = "Player 1 wins the game!"
+    complete_game.moves_made = ["a7", "d7", "a4", "d6", "g7", "xb6"]
+    complete_game.stats["mills_formed"] = {"1": 2, "2": 1}
+    complete_game.stats["captures"] = {"1": 2, "2": 0}
+    complete_game.stats["missed_blocks"] = {"1": 0, "2": 1}
+    complete_game.stats["hard_ai_times_ms"] = [84.0, 106.0, 95.0]
+    complete_gui = NineMensMorrisGUI(complete_game)
+    complete_gui.draw_board()
+    complete_image = save_surface(complete_gui.screen, "game-over.png")
+    slides.append(
+        (complete_image, "Match summary", "Rematch, menu, and move review remain one click away", 8)
+    )
+
+    review_game = NineMensMorrisGame(game_mode=constants.H_VS_H)
+    review_game.make_move(0, 0)
+    review_game.make_move(6, 6)
+    review_game.make_move(0, 3)
+    review_gui = NineMensMorrisGUI(review_game)
+    review_gui.open_review()
+    review_gui.review_index = 2
+    review_gui.draw_board()
+    review_image = save_surface(review_gui.screen, "review.png")
+    slides.append(
+        (
+            review_image,
+            "Visual move review",
+            "Step through the match and see exactly what changed",
+            8,
+        )
     )
 
     instructions = InstructionsScreen()

@@ -131,6 +131,47 @@ class MorrisAITacticalTests(unittest.TestCase):
         self.assertIn(move, legal)
         self.assertLess(elapsed, 5.0)
 
+    def test_hard_avoids_a_third_repetition_when_an_alternative_exists(self):
+        board = self.board(
+            {(0, 0), (1, 1), (3, 2), (6, 6)},
+            {(2, 2), (2, 4), (3, 0), (5, 1)},
+        )
+        repeated_move = ((5, 1), (5, 3))
+        indexed_move = tuple(self.ai.point_index[point] for point in repeated_move)
+        repeated_outcomes = self.ai._movement_outcomes(
+            board,
+            constants.PLAY2,
+            only_move=indexed_move,
+        )
+        position_counts = {
+            (child, constants.PLAY1): constants.THREEFOLD_REPETITION_COUNT - 1
+            for _move, _capture, child in repeated_outcomes
+        }
+
+        selected = self.ai.choose_movement(
+            board,
+            constants.PLAY2,
+            constants.HARD,
+            position_counts=position_counts,
+            moves_without_capture=4,
+        )
+
+        self.assertNotEqual(selected, repeated_move)
+        self.assertEqual(selected, ((3, 0), (3, 1)))
+
+    def test_hard_scores_the_no_capture_limit_as_a_draw(self):
+        board = self.blocking_position()
+        score = self.ai._minimax(
+            board,
+            constants.PLAY2,
+            2,
+            -self.ai.WIN_SCORE * 2,
+            self.ai.WIN_SCORE * 2,
+            constants.PLAY2,
+            moves_without_capture=constants.MAX_MOVES_WITHOUT_CAPTURE,
+        )
+        self.assertEqual(score, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
