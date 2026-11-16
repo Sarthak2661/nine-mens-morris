@@ -12,7 +12,7 @@
 
 ![Nine Men's Morris demonstration](resources/demo.gif)
 
-This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, save support, and three distinct computer difficulty levels.
+This is a Python/Pygame version of **Nine Men's Morris**, built as a playable desktop game with a menu, rule screen, move-history export, and three distinct computer difficulty levels.
 
 ## About Nine Men's Morris
 
@@ -23,9 +23,9 @@ Nine Men's Morris is a strategy board game where players place and move pieces t
 - Three game phases: placement, movement, and flying
 - Two game modes: human vs human and human vs computer
 - Three distinct computer difficulty levels with random, tactical, and search-based play
-- Save move history for review and debugging (game restoration is not implemented yet)
+- Export move history for review and debugging (game restoration is not implemented yet)
 - Smooth Pygame board rendering and move feedback
-- Menu screens, instructions, and in-game status display
+- A shared dark visual system across menus, instructions, and the in-game status display
 
 ## Architecture
 
@@ -56,6 +56,11 @@ into one portable executable.
 | Hard AI tactical response | Built-in rules |
 |---|---|
 | ![Hard AI blocks a mill](resources/ai-hard.png) | ![How to play](resources/howtoplay.png) |
+
+The interface uses a shared charcoal, wood, brass, and teal palette with common
+typography, spacing, panels, and interactive button states. The original v1.0.0
+screen captures are retained in [`resources/baseline-v1.0.0`](resources/baseline-v1.0.0)
+for visual regression comparison.
 
 ## Quick Start
 
@@ -116,8 +121,8 @@ into one portable executable.
 - Click an empty board point to place a piece during placement.
 - Click one of your pieces, then click a valid destination to move during movement.
 - Form a mill to remove one eligible opponent piece.
-- Use the reset, save, and exit controls from the game sidebar. Save writes the
-  current move history to `game_state.txt`; it does not restore a match yet.
+- Use the reset, export, and exit controls from the game sidebar. Export writes
+  the current move history to `game_state.txt`; it does not restore a match yet.
 
 ### Phase 1: Placement
 
@@ -166,6 +171,7 @@ keep interaction responsive during high-branching flying positions.
 |-- ai.py                   # Difficulty strategies and minimax search
 |-- GUI.py                  # Game board rendering and in-game UI
 |-- menu.py                 # Home, mode, difficulty, and instructions screens
+|-- ui_theme.py             # Shared palette, typography, spacing, panels, and buttons
 |-- constants.py            # Game constants and configuration
 |-- BL_tests.py             # Business logic unit tests
 |-- GUI_tests.py            # GUI unit tests
@@ -194,14 +200,14 @@ Run the full test suite:
 python -m unittest discover -p "*tests.py" -v
 ```
 
-The 58-test suite covers game rules, draw handling, complete phase transitions,
+The 60-test suite covers game rules, draw handling, complete phase transitions,
 endgame behavior, GUI behavior, state invariants, capture limits, AI legality,
 and tactical positions for winning, blocking, capturing, and flying. CI enforces
 at least 90% branch coverage across the game and AI engines.
 
 | Quality gate | Current result |
 |---|---:|
-| Automated tests | 58 passing |
+| Automated tests | 60 passing |
 | Game and AI branch coverage | 98% |
 | AI legal-action rate | 100% on benchmark fixtures |
 | Ruff formatting and linting | Pass |
@@ -272,17 +278,18 @@ startup.
 
 ## Known Limitations
 
-- Save writes move history but cannot restore a match yet.
+- Export writes move history but cannot restore a match yet.
 - Hard AI is depth-limited; it is intentionally responsive rather than perfect.
 - The Windows executable is not code-signed and may trigger SmartScreen.
 - The release is a portable executable, not an installer.
 - Online multiplayer, sound, and controller input are not implemented.
-- The interface uses a 900 x 720 logical canvas. Automated rendering checks cover
-  100%, 125%, and 150% scaling, but unusual accessibility font overrides may vary.
+- The minimum supported logical resolution is 900 x 720. Automated surface-rendering
+  checks target Windows scaling at 100%, 125%, and 150%; unusual accessibility font
+  overrides and operating-system DPI behavior still require release-time manual checks.
 
 ## Future Enhancements
 
-- UI cleanup and a more consistent visual style
+- Optional light theme and player-selectable appearance settings
 - Better movement, capture, and turn-change animations
 - Player-selected piece colors
 - Board theme customization

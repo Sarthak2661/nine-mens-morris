@@ -7,6 +7,7 @@ import unittest
 import pygame
 
 import constants
+import ui_theme as theme
 from GUI import NineMensMorrisGUI, get_coords
 from logic import NineMensMorrisGame
 from menu import DifficultySelector, HomePage, InstructionsScreen, Menu, wrap_text
@@ -81,6 +82,34 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         hint_rect = hint.get_rect(topleft=(230, 678))
         self.assertFalse(instructions.back_button_rect.colliderect(hint_rect))
 
+    def test_status_card_columns_are_contained_and_do_not_overlap(self):
+        card = pygame.Rect(
+            constants.SIDEBAR_X + 8,
+            240,
+            constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30,
+            70,
+        )
+
+        left, right = self.gui.status_card_columns(card)
+
+        self.assertTrue(card.contains(left))
+        self.assertTrue(card.contains(right))
+        self.assertFalse(left.colliderect(right))
+        self.assertGreaterEqual(right.left - left.right, theme.SPACE_MEDIUM)
+
+    def test_shared_button_has_a_visible_hover_state(self):
+        normal = pygame.Surface((180, 60))
+        hovered = pygame.Surface((180, 60))
+        rect = pygame.Rect(4, 4, 172, 50)
+        label_font = theme.font(18, bold=True)
+
+        theme.draw_button(normal, rect, "Play", label_font, hovered=False)
+        theme.draw_button(hovered, rect, "Play", label_font, hovered=True)
+
+        self.assertNotEqual(
+            pygame.image.tobytes(normal, "RGB"), pygame.image.tobytes(hovered, "RGB")
+        )
+
     def test_common_display_scaling_keeps_complete_frame(self):
         renderers = [
             (HomePage(), "draw"),
@@ -92,7 +121,7 @@ class TestNineMensMorrisGUI(unittest.TestCase):
             getattr(renderer, method_name)()
             frame = renderer.screen.copy()
             self.assertEqual(frame.get_size(), (constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-            for scale in (1.0, 1.25, 1.5):
+            for scale in constants.SUPPORTED_DISPLAY_SCALES:
                 scaled = pygame.transform.smoothscale(
                     frame,
                     (

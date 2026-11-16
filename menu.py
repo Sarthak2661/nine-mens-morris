@@ -4,6 +4,7 @@ import sys
 import pygame
 
 import constants
+import ui_theme as theme
 
 
 def wrap_text(text, font, max_width):
@@ -30,8 +31,9 @@ class HomePage:
         self.clock = pygame.time.Clock()
         self.started = False
         self.show_instructions = False
-        self.title_font = pygame.font.SysFont("Segoe UI", 72, bold=True)
-        self.subtitle_font = pygame.font.SysFont("Segoe UI", 28)
+        self.title_font = theme.font(72, bold=True)
+        self.subtitle_font = theme.font(28)
+        self.button_font = theme.font(22, bold=True)
         self.start_button_rect = pygame.Rect(175, 480, 300, 70)
         self.how_to_play_button_rect = pygame.Rect(525, 480, 250, 70)
 
@@ -67,42 +69,35 @@ class HomePage:
         if self.background:
             self.screen.blit(self.background, (0, 0))
         else:
-            self.screen.fill((139, 90, 43))
+            self.screen.fill(constants.BOARD_DARK)
 
         overlay = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
         overlay.set_alpha(80)
         overlay.fill((0, 0, 0))
         self.screen.blit(overlay, (0, 0))
-        title = self.title_font.render("Nine Men's Morris", True, (255, 255, 255))
+        title = self.title_font.render("Nine Men's Morris", True, theme.TEXT_PRIMARY)
         title_rect = title.get_rect(center=(constants.SCREEN_WIDTH // 2, 120))
 
         shadow = self.title_font.render("Nine Men's Morris", True, (0, 0, 0))
         self.screen.blit(shadow, (title_rect.x + 3, title_rect.y + 3))
         self.screen.blit(title, title_rect)
 
-        subtitle = self.subtitle_font.render("An Ancient Strategy Game", True, (220, 200, 170))
+        subtitle = self.subtitle_font.render("An Ancient Strategy Game", True, theme.BRASS_BRIGHT)
         self.screen.blit(subtitle, subtitle.get_rect(center=(constants.SCREEN_WIDTH // 2, 220)))
 
-        pygame.draw.line(self.screen, (218, 165, 32), (150, 280), (750, 280), 2)
+        pygame.draw.line(self.screen, theme.BRASS, (150, 280), (750, 280), 2)
 
-        desc_font = pygame.font.SysFont("Segoe UI", 18)
+        desc_font = theme.font(18)
         desc = desc_font.render(
-            "Place, move, and capture your opponent's pieces to win", True, (200, 200, 200)
+            "Place, move, and capture your opponent's pieces to win", True, theme.TEXT_SECONDARY
         )
         self.screen.blit(desc, desc.get_rect(center=(constants.SCREEN_WIDTH // 2, 330)))
 
-        self.draw_button(self.start_button_rect, "START GAME", (60, 120, 200), (100, 160, 255))
-        self.draw_button(self.how_to_play_button_rect, "HOW TO PLAY", (120, 80, 40), (180, 120, 60))
+        self.draw_button(self.start_button_rect, "START GAME", "primary")
+        self.draw_button(self.how_to_play_button_rect, "HOW TO PLAY", "secondary")
 
-    def draw_button(self, rect, text, color, hover_color):
-        shadow_rect = pygame.Rect(rect.x + 4, rect.y + 4, rect.width, rect.height)
-        pygame.draw.rect(self.screen, (0, 0, 0), shadow_rect, border_radius=15)
-
-        pygame.draw.rect(self.screen, color, rect, border_radius=15)
-        pygame.draw.rect(self.screen, (255, 255, 255), rect, width=2, border_radius=15)
-
-        label = pygame.font.SysFont("Segoe UI", 24, bold=True).render(text, True, (255, 255, 255))
-        self.screen.blit(label, label.get_rect(center=rect.center))
+    def draw_button(self, rect, text, variant):
+        theme.draw_button(self.screen, rect, text, self.button_font, variant=variant)
 
 
 class InstructionsScreen:
@@ -112,9 +107,9 @@ class InstructionsScreen:
         self.clock = pygame.time.Clock()
         self.done = False
         self.scroll_offset = 0
-        self.title_font = pygame.font.SysFont("Segoe UI", 48, bold=True)
-        self.heading_font = pygame.font.SysFont("Segoe UI", 26, bold=True)
-        self.text_font = pygame.font.SysFont("Segoe UI", 18)
+        self.title_font = theme.font(48, bold=True)
+        self.heading_font = theme.font(26, bold=True)
+        self.text_font = theme.font(18)
         self.back_button_rect = pygame.Rect(50, 665, 150, 40)
         self.instructions = self._prepare_instructions()
         self.content_width = constants.SCREEN_WIDTH - 140
@@ -209,23 +204,36 @@ class InstructionsScreen:
             self.clock.tick(30)
 
     def draw(self):
-        self.screen.fill((245, 245, 245))
+        self.screen.fill(theme.APP_BACKGROUND)
 
         title_bar = pygame.Rect(0, 0, constants.SCREEN_WIDTH, 80)
-        pygame.draw.rect(self.screen, (139, 90, 43), title_bar)
+        pygame.draw.rect(self.screen, theme.SURFACE, title_bar)
+        pygame.draw.line(
+            self.screen,
+            theme.BRASS,
+            (48, title_bar.bottom - 1),
+            (constants.SCREEN_WIDTH - 48, title_bar.bottom - 1),
+            2,
+        )
 
         title_text = "How to Play"
-        title = self.title_font.render(title_text, True, (255, 255, 255))
+        title = self.title_font.render(title_text, True, theme.TEXT_PRIMARY)
         title_rect = title.get_rect(center=(constants.SCREEN_WIDTH // 2, 42))
 
-        title_shadow = self.title_font.render(title_text, True, (0, 0, 0))
+        title_shadow = self.title_font.render(title_text, True, theme.SHADOW)
         shadow_rect = title_shadow.get_rect(center=(constants.SCREEN_WIDTH // 2 + 2, 42 + 2))
         self.screen.blit(title_shadow, shadow_rect)
         self.screen.blit(title, title_rect)
 
         content_area = pygame.Rect(30, 95, constants.SCREEN_WIDTH - 60, 555)
-        pygame.draw.rect(self.screen, (255, 255, 255), content_area, border_radius=10)
-        pygame.draw.rect(self.screen, (200, 150, 100), content_area, width=3, border_radius=10)
+        theme.draw_panel(
+            self.screen,
+            content_area,
+            fill=theme.SURFACE,
+            border=theme.BORDER_WARM,
+            radius=theme.RADIUS_LARGE,
+            shadow=True,
+        )
         y = 110 - self.scroll_offset
         previous_clip = self.screen.get_clip()
         self.screen.set_clip(content_area.inflate(-12, -12))
@@ -233,13 +241,13 @@ class InstructionsScreen:
         for text, text_type in self.instructions:
             if text_type == "heading":
                 font = self.heading_font
-                color = (50, 50, 50)
+                color = theme.BRASS_BRIGHT
             elif text_type == "subheading":
                 font = self.heading_font
-                color = (100, 100, 100)
+                color = theme.TEAL_BRIGHT
             else:
                 font = self.text_font
-                color = (0, 0, 0)
+                color = theme.TEXT_SECONDARY
 
             for wrapped_line in wrap_text(text, font, self.content_width):
                 line = font.render(wrapped_line, True, color)
@@ -247,15 +255,18 @@ class InstructionsScreen:
                     self.screen.blit(line, (70, y))
                 y += font.get_height() + 5
         self.screen.set_clip(previous_clip)
-        pygame.draw.rect(self.screen, (139, 90, 43), self.back_button_rect, border_radius=8)
-        pygame.draw.rect(
-            self.screen, (255, 255, 255), self.back_button_rect, width=2, border_radius=8
+        theme.draw_button(
+            self.screen,
+            self.back_button_rect,
+            "< BACK",
+            self.text_font,
+            variant="secondary",
         )
-        back_text = self.text_font.render("< BACK", True, (255, 255, 255))
-        self.screen.blit(back_text, back_text.get_rect(center=self.back_button_rect.center))
-        hint_font = pygame.font.SysFont("Segoe UI", 14)
+        hint_font = theme.font(14)
         hint = hint_font.render(
-            "Use UP/DOWN arrows or mouse wheel to scroll | ESC to go back", True, (100, 100, 100)
+            "Use UP/DOWN arrows or mouse wheel to scroll | ESC to go back",
+            True,
+            theme.TEXT_MUTED,
         )
         self.screen.blit(hint, (230, 678))
 
@@ -266,9 +277,9 @@ class Menu:
         pygame.display.set_caption("Nine Men's Morris - Game Mode")
         self.clock = pygame.time.Clock()
         self.selected_option = None
-        self.title_font = pygame.font.SysFont("Segoe UI", 52, bold=True)
-        self.font = pygame.font.SysFont("Segoe UI", 28)
-        self.small_font = pygame.font.SysFont("Segoe UI", 20)
+        self.title_font = theme.font(52, bold=True)
+        self.font = theme.font(24, bold=True)
+        self.small_font = theme.font(20)
         self.human_vs_human_button_rect = pygame.Rect(200, 300, 500, 70)
         self.human_vs_computer_button_rect = pygame.Rect(200, 420, 500, 70)
 
@@ -289,30 +300,12 @@ class Menu:
             self.clock.tick(30)
 
     def draw_menu(self):
-        self.screen.fill((139, 90, 43))
+        theme.draw_setup_backdrop(self.screen, "Select Game Mode", "Choose how you want to play")
+        self.draw_button(self.human_vs_human_button_rect, "Human vs Human", "primary")
+        self.draw_button(self.human_vs_computer_button_rect, "Human vs Computer", "secondary")
 
-        title = self.title_font.render("Select Game Mode", True, (255, 255, 255))
-        title_rect = title.get_rect(center=(constants.SCREEN_WIDTH // 2, 100))
-        title_shadow = self.title_font.render("Select Game Mode", True, (0, 0, 0))
-        self.screen.blit(title_shadow, (title_rect.x + 2, title_rect.y + 2))
-        self.screen.blit(title, title_rect)
-        subtitle = self.small_font.render("Choose how you want to play", True, (220, 200, 170))
-        self.screen.blit(subtitle, subtitle.get_rect(center=(constants.SCREEN_WIDTH // 2, 200)))
-
-        pygame.draw.line(self.screen, (218, 165, 32), (100, 250), (800, 250), 2)
-
-        self.draw_button(self.human_vs_human_button_rect, "Human vs Human", (60, 120, 200))
-        self.draw_button(self.human_vs_computer_button_rect, "Human vs Computer", (140, 100, 60))
-
-    def draw_button(self, rect, text, color):
-        shadow_rect = pygame.Rect(rect.x + 4, rect.y + 4, rect.width, rect.height)
-        pygame.draw.rect(self.screen, (0, 0, 0), shadow_rect, border_radius=15)
-
-        pygame.draw.rect(self.screen, color, rect, border_radius=15)
-        pygame.draw.rect(self.screen, (255, 255, 255), rect, width=3, border_radius=15)
-
-        label = self.font.render(text, True, (255, 255, 255))
-        self.screen.blit(label, label.get_rect(center=rect.center))
+    def draw_button(self, rect, text, variant):
+        theme.draw_button(self.screen, rect, text, self.font, variant=variant)
 
     def get_selected_option(self):
         return self.selected_option
@@ -324,9 +317,9 @@ class DifficultySelector:
         pygame.display.set_caption("Nine Men's Morris - Select Difficulty")
         self.clock = pygame.time.Clock()
         self.selected_difficulty = None
-        self.title_font = pygame.font.SysFont("Segoe UI", 52, bold=True)
-        self.font = pygame.font.SysFont("Segoe UI", 28)
-        self.small_font = pygame.font.SysFont("Segoe UI", 20)
+        self.title_font = theme.font(52, bold=True)
+        self.font = theme.font(23, bold=True)
+        self.small_font = theme.font(20)
         self.easy_button_rect = pygame.Rect(200, 280, 500, 70)
         self.normal_button_rect = pygame.Rect(200, 385, 500, 70)
         self.hard_button_rect = pygame.Rect(200, 490, 500, 70)
@@ -350,33 +343,17 @@ class DifficultySelector:
             self.clock.tick(30)
 
     def draw_selector(self):
-        self.screen.fill((139, 90, 43))
-
-        title = self.title_font.render("Select Difficulty", True, (255, 255, 255))
-        title_rect = title.get_rect(center=(constants.SCREEN_WIDTH // 2, 100))
-        title_shadow = self.title_font.render("Select Difficulty", True, (0, 0, 0))
-        self.screen.blit(title_shadow, (title_rect.x + 2, title_rect.y + 2))
-        self.screen.blit(title, title_rect)
-        subtitle = self.small_font.render(
-            "How challenging should your opponent be?", True, (220, 200, 170)
+        theme.draw_setup_backdrop(
+            self.screen,
+            "Select Difficulty",
+            "How challenging should your opponent be?",
         )
-        self.screen.blit(subtitle, subtitle.get_rect(center=(constants.SCREEN_WIDTH // 2, 180)))
+        self.draw_button(self.easy_button_rect, "EASY - Random moves", "success")
+        self.draw_button(self.normal_button_rect, "NORMAL - Smart play", "warning")
+        self.draw_button(self.hard_button_rect, "HARD - Stronger play", "danger")
 
-        pygame.draw.line(self.screen, (218, 165, 32), (100, 240), (800, 240), 2)
-
-        self.draw_button(self.easy_button_rect, "EASY - Random moves", (60, 150, 80))
-        self.draw_button(self.normal_button_rect, "NORMAL - Smart play", (180, 120, 40))
-        self.draw_button(self.hard_button_rect, "HARD - Stronger play", (150, 60, 60))
-
-    def draw_button(self, rect, text, color):
-        shadow_rect = pygame.Rect(rect.x + 4, rect.y + 4, rect.width, rect.height)
-        pygame.draw.rect(self.screen, (0, 0, 0), shadow_rect, border_radius=15)
-
-        pygame.draw.rect(self.screen, color, rect, border_radius=15)
-        pygame.draw.rect(self.screen, (255, 255, 255), rect, width=3, border_radius=15)
-
-        label = self.font.render(text, True, (255, 255, 255))
-        self.screen.blit(label, label.get_rect(center=rect.center))
+    def draw_button(self, rect, text, variant):
+        theme.draw_button(self.screen, rect, text, self.font, variant=variant)
 
     def get_selected_difficulty(self):
         return self.selected_difficulty

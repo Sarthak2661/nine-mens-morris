@@ -3,6 +3,7 @@ import sys
 import pygame
 
 import constants
+import ui_theme as theme
 
 pygame.init()
 
@@ -28,10 +29,10 @@ class NineMensMorrisGUI:
         self.clicked_point = None
         self.valid_destinations = []
 
-        self.font = pygame.font.SysFont("Segoe UI", 22, bold=True)
-        self.small_font = pygame.font.SysFont("Segoe UI", 16)
-        self.title_font = pygame.font.SysFont("Segoe UI", 32, bold=True)
-        self.phase_font = pygame.font.SysFont("Segoe UI", 18, bold=True)
+        self.font = theme.font(22, bold=True)
+        self.small_font = theme.font(16)
+        self.title_font = theme.font(30, bold=True)
+        self.phase_font = theme.font(17, bold=True)
 
         self.reset_rect = pygame.Rect(constants.SIDEBAR_X, 620, 75, 45)
         self.save_rect = pygame.Rect(constants.SIDEBAR_X + 80, 620, 75, 45)
@@ -40,12 +41,12 @@ class NineMensMorrisGUI:
         self.moving_piece = None
 
     def draw_board(self):
-        self.screen.fill((245, 245, 245))
+        self.screen.fill(theme.APP_BACKGROUND)
         board_rect = pygame.Rect(0, 0, constants.BOARD_PIXELS, constants.BOARD_PIXELS)
         pygame.draw.rect(self.screen, constants.BOARD_DARK, board_rect)
 
-        pygame.draw.rect(self.screen, (0, 0, 0), board_rect, 5)
-        pygame.draw.rect(self.screen, (100, 70, 40), board_rect.inflate(-8, -8), 2)
+        pygame.draw.rect(self.screen, theme.SHADOW, board_rect, 5)
+        pygame.draw.rect(self.screen, theme.BRASS, board_rect.inflate(-8, -8), 2)
 
         for line in constants.LINES:
             pygame.draw.line(
@@ -60,7 +61,11 @@ class NineMensMorrisGUI:
             x, y = point_center(row, col)
             pulse = abs(int(5 * pygame.time.get_ticks() / 500) % 10 - 5)
             pygame.draw.circle(
-                self.screen, (100, 200, 100), (x, y), constants.CIRCLE_RADIUS + 7 + pulse, 3
+                self.screen,
+                theme.TEAL_BRIGHT,
+                (x, y),
+                constants.CIRCLE_RADIUS + 7 + pulse,
+                3,
             )
 
         if self.clicked_point is not None:
@@ -108,7 +113,7 @@ class NineMensMorrisGUI:
             )
             pygame.draw.circle(self.screen, (100, 100, 100), (x, y), constants.CIRCLE_RADIUS + 4, 2)
         else:
-            pygame.draw.circle(self.screen, (150, 120, 80), (x, y), 4)
+            pygame.draw.circle(self.screen, theme.BRASS, (x, y), 4)
 
         if self.moving_piece and self.moving_piece[2] == row and self.moving_piece[3] == col:
             self.draw_animated_piece()
@@ -192,7 +197,7 @@ class NineMensMorrisGUI:
         x, y = point_center(row, col)
         pulse = abs(int(8 * pygame.time.get_ticks() / 600) % 12 - 6)
         pygame.draw.circle(
-            self.screen, constants.GOLD, (x, y), constants.CIRCLE_RADIUS + 14 + pulse, 4
+            self.screen, theme.BRASS_BRIGHT, (x, y), constants.CIRCLE_RADIUS + 14 + pulse, 4
         )
 
     def draw_sidebar(self):
@@ -202,21 +207,25 @@ class NineMensMorrisGUI:
             constants.SCREEN_WIDTH - constants.SIDEBAR_X + 25,
             constants.SCREEN_HEIGHT,
         )
-        pygame.draw.rect(self.screen, (245, 245, 250), panel)
+        pygame.draw.rect(self.screen, theme.SURFACE, panel)
         pygame.draw.line(
             self.screen,
-            (180, 140, 100),
+            theme.BRASS,
             (constants.SIDEBAR_X - 25, 0),
             (constants.SIDEBAR_X - 25, constants.SCREEN_HEIGHT),
             4,
         )
 
         self.blit_text(
-            "Nine Men's Morris", self.title_font, (30, 30, 60), constants.SIDEBAR_X + 10, 12
+            "Nine Men's Morris",
+            self.title_font,
+            theme.TEXT_PRIMARY,
+            constants.SIDEBAR_X + 10,
+            12,
         )
         pygame.draw.line(
             self.screen,
-            (200, 150, 100),
+            theme.BRASS,
             (constants.SIDEBAR_X + 5, 60),
             (constants.SCREEN_WIDTH - 15, 60),
             2,
@@ -225,35 +234,43 @@ class NineMensMorrisGUI:
         phase_text = (
             "PHASE 1: PLACEMENT" if self.game.phase == constants.PHASE1 else "PHASE 2: MOVEMENT"
         )
-        phase_color = (40, 40, 40) if self.game.phase == constants.PHASE1 else (60, 100, 140)
+        phase_color = (
+            theme.BRASS_BRIGHT if self.game.phase == constants.PHASE1 else theme.TEAL_BRIGHT
+        )
         phase_bg = pygame.Rect(
             constants.SIDEBAR_X + 8, 68, constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30, 28
         )
-        pygame.draw.rect(self.screen, (240, 240, 245), phase_bg, border_radius=5)
+        pygame.draw.rect(self.screen, theme.SURFACE_RAISED, phase_bg, border_radius=5)
         pygame.draw.rect(self.screen, phase_color, phase_bg, width=2, border_radius=5)
         self.blit_text(phase_text, self.phase_font, phase_color, constants.SIDEBAR_X + 15, 73)
 
         if self.game.phase == constants.PHASE2 and self.game.get_player_pieces(self.game.turn) == 3:
             self.blit_text(
-                "FLYING MODE ACTIVE", self.small_font, (220, 80, 0), constants.SIDEBAR_X + 10, 100
+                "FLYING MODE ACTIVE",
+                self.small_font,
+                theme.WARNING,
+                constants.SIDEBAR_X + 10,
+                100,
             )
             y_base = 130
         else:
             y_base = 110
-        turn_color = (40, 40, 40) if self.game.turn == constants.PLAY1 else (100, 100, 100)
+        turn_color = (
+            theme.TEXT_PRIMARY if self.game.turn == constants.PLAY1 else theme.TEXT_SECONDARY
+        )
         turn_label = "PLAYER 1 (BLACK)" if self.game.turn == constants.PLAY1 else "PLAYER 2 (WHITE)"
         turn_rect = pygame.Rect(
             constants.SIDEBAR_X + 8, y_base, constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30, 32
         )
-        pygame.draw.rect(self.screen, (220, 220, 225), turn_rect, border_radius=5)
+        pygame.draw.rect(self.screen, theme.SURFACE_SOFT, turn_rect, border_radius=5)
         pygame.draw.rect(self.screen, turn_color, turn_rect, width=2, border_radius=5)
         self.blit_text(turn_label, self.font, turn_color, constants.SIDEBAR_X + 15, y_base + 5)
         msg_y = y_base + 45
         msg_rect = pygame.Rect(
             constants.SIDEBAR_X + 8, msg_y, constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30, 50
         )
-        pygame.draw.rect(self.screen, (255, 255, 255), msg_rect, border_radius=5)
-        pygame.draw.rect(self.screen, (200, 200, 200), msg_rect, width=1, border_radius=5)
+        pygame.draw.rect(self.screen, theme.SURFACE_RAISED, msg_rect, border_radius=5)
+        pygame.draw.rect(self.screen, theme.BORDER, msg_rect, width=1, border_radius=5)
 
         msg_lines = self.game.message.split("\n") if self.game.message else []
         if not msg_lines or (len(msg_lines) == 1 and not msg_lines[0]):
@@ -265,7 +282,7 @@ class NineMensMorrisGUI:
                 self.blit_text(
                     msg_line,
                     self.small_font,
-                    (30, 30, 60),
+                    theme.TEXT_SECONDARY,
                     constants.SIDEBAR_X + 15,
                     msg_line_y,
                     max_width=225,
@@ -279,12 +296,12 @@ class NineMensMorrisGUI:
                 constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30,
                 35,
             )
-            pygame.draw.rect(self.screen, (255, 240, 240), error_rect, border_radius=5)
-            pygame.draw.rect(self.screen, (200, 50, 50), error_rect, width=2, border_radius=5)
+            pygame.draw.rect(self.screen, theme.SURFACE_RAISED, error_rect, border_radius=5)
+            pygame.draw.rect(self.screen, theme.DANGER, error_rect, width=2, border_radius=5)
             self.blit_text(
                 self.game.last_error,
                 self.small_font,
-                (150, 30, 30),
+                theme.DANGER,
                 constants.SIDEBAR_X + 15,
                 error_y + 7,
                 max_width=225,
@@ -296,14 +313,14 @@ class NineMensMorrisGUI:
             "BLACK PIECES",
             self.game.get_on_board_count(constants.PLAY1),
             constants.TOTAL_MENS - self.game.play1_counter,
-            (60, 60, 70),
+            theme.TEXT_PRIMARY,
             status_y,
         )
         self.draw_status_card(
             "WHITE PIECES",
             self.game.get_on_board_count(constants.PLAY2),
             constants.TOTAL_MENS - self.game.play2_counter,
-            (150, 150, 160),
+            theme.TEXT_SECONDARY,
             status_y + 80,
         )
         instr_y = status_y + 165
@@ -315,47 +332,46 @@ class NineMensMorrisGUI:
         instr_rect = pygame.Rect(
             constants.SIDEBAR_X + 8, instr_y, constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30, 28
         )
-        pygame.draw.rect(self.screen, (240, 250, 240), instr_rect, border_radius=5)
-        pygame.draw.rect(self.screen, (80, 140, 80), instr_rect, width=2, border_radius=5)
+        pygame.draw.rect(self.screen, theme.SURFACE_RAISED, instr_rect, border_radius=5)
+        pygame.draw.rect(self.screen, theme.SUCCESS, instr_rect, width=2, border_radius=5)
         self.blit_text(
             instruction,
             self.small_font,
-            (40, 100, 40),
+            theme.TEXT_PRIMARY,
             constants.SIDEBAR_X + 15,
             instr_y + 5,
             max_width=225,
         )
-        self.draw_button(self.reset_rect, "Reset", (220, 180, 40))
-        self.draw_button(self.save_rect, "Save", (80, 120, 180))
-        self.draw_button(self.exit_rect, "Exit", (160, 60, 60))
+        self.draw_button(self.reset_rect, "Reset", "warning")
+        self.draw_button(self.save_rect, "Export", "primary")
+        self.draw_button(self.exit_rect, "Exit", "danger")
 
     def draw_status_card(self, title, on_board, unplaced, color, y):
         rect = pygame.Rect(
             constants.SIDEBAR_X + 8, y, constants.SCREEN_WIDTH - constants.SIDEBAR_X - 30, 70
         )
-        pygame.draw.rect(self.screen, (255, 255, 255), rect, border_radius=8)
-        pygame.draw.rect(self.screen, color, rect, width=2, border_radius=8)
+        pygame.draw.rect(self.screen, theme.SURFACE_RAISED, rect, border_radius=8)
+        pygame.draw.rect(self.screen, color, rect, width=1, border_radius=8)
 
         self.blit_text(title, self.font, color, constants.SIDEBAR_X + 20, y + 8)
 
-        on_board_text = f"On Board: {on_board}"
-        to_place_text = f"To Place: {unplaced}"
-        self.blit_text(
-            on_board_text, self.small_font, (30, 30, 30), constants.SIDEBAR_X + 20, y + 38
-        )
-        self.blit_text(
-            to_place_text, self.small_font, (30, 30, 30), constants.SIDEBAR_X + 210, y + 38
-        )
+        left_column, right_column = self.status_card_columns(rect)
+        on_board_text = self.small_font.render(f"On Board: {on_board}", True, theme.TEXT_SECONDARY)
+        to_place_text = self.small_font.render(f"To Place: {unplaced}", True, theme.TEXT_SECONDARY)
+        self.screen.blit(on_board_text, on_board_text.get_rect(midleft=left_column.midleft))
+        self.screen.blit(to_place_text, to_place_text.get_rect(midright=right_column.midright))
 
-    def draw_button(self, rect, text, color=constants.GRAY):
-        shadow_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width, rect.height)
-        pygame.draw.rect(self.screen, (200, 200, 200), shadow_rect, border_radius=8)
+    @staticmethod
+    def status_card_columns(rect):
+        inner = rect.inflate(-24, 0)
+        gap = theme.SPACE_MEDIUM
+        column_width = (inner.width - gap) // 2
+        left = pygame.Rect(inner.left, rect.top + 34, column_width, 28)
+        right = pygame.Rect(left.right + gap, rect.top + 34, column_width, 28)
+        return left, right
 
-        pygame.draw.rect(self.screen, color, rect, border_radius=8)
-        pygame.draw.rect(self.screen, (100, 100, 100), rect, width=2, border_radius=8)
-
-        label = self.small_font.render(text, True, (255, 255, 255))
-        self.screen.blit(label, label.get_rect(center=rect.center))
+    def draw_button(self, rect, text, variant="secondary"):
+        theme.draw_button(self.screen, rect, text, self.small_font, variant=variant)
 
     def blit_text(self, text, font, color, x, y, max_width=None):
         if max_width is None:
@@ -387,7 +403,7 @@ class NineMensMorrisGUI:
     def handle_click(self, pos):
         if self.save_rect.collidepoint(pos):
             self.game.save_game()
-            self.game.message = "Game saved."
+            self.game.message = "Move history exported."
             return
         if self.reset_rect.collidepoint(pos):
             mode = self.game.game_mode
