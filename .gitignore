@@ -43,6 +43,7 @@ venv.bak/
 
 # Game state
 game_state.txt
+saves/
 
 # IDE specific files
 .pytest_cache/
