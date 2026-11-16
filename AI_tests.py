@@ -137,7 +137,10 @@ class MorrisAITacticalTests(unittest.TestCase):
             {(2, 2), (2, 4), (3, 0), (5, 1)},
         )
         repeated_move = ((5, 1), (5, 3))
-        indexed_move = tuple(self.ai.point_index[point] for point in repeated_move)
+        indexed_move = (
+            self.ai.point_index[repeated_move[0]],
+            self.ai.point_index[repeated_move[1]],
+        )
         repeated_outcomes = self.ai._movement_outcomes(
             board,
             constants.PLAY2,

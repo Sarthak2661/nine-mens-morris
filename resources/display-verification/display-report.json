@@ -1,0 +1,31 @@
+{
+  "logical_canvas": [
+    900,
+    720
+  ],
+  "system_dpi": 96,
+  "system_scale_percent": 100,
+  "verified_scale_factors": [
+    1.0,
+    1.25,
+    1.5
+  ],
+  "verified_window_sizes": [
+    [
+      800,
+      640
+    ],
+    [
+      1366,
+      768
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "modes": [
+    "standard",
+    "high-contrast"
+  ]
+}

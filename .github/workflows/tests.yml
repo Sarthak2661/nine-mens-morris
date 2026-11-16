@@ -39,6 +39,16 @@ jobs:
           coverage run -m unittest discover -p '*tests.py' -v
           coverage report
 
+      - name: Verify supported display matrix
+        run: python scripts/verify_display.py
+
+      - name: Upload display verification
+        uses: actions/upload-artifact@v7
+        with:
+          name: display-verification
+          path: resources/display-verification/
+          if-no-files-found: error
+
       - name: Audit runtime dependencies
         run: pip-audit -r requirements.txt
 

@@ -5,6 +5,7 @@ import pygame
 
 import constants
 import ui_theme as theme
+from display import create_window
 from game_persistence import save_status
 
 
@@ -27,8 +28,7 @@ def wrap_text(text, font, max_width):
 
 class HomePage:
     def __init__(self):
-        self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-        pygame.display.set_caption("Nine Men's Morris")
+        self.screen = create_window("Nine Men's Morris")
         self.clock = pygame.time.Clock()
         self.started = False
         self.selected_action = None
@@ -153,8 +153,7 @@ class HomePage:
 
 class InstructionsScreen:
     def __init__(self):
-        self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-        pygame.display.set_caption("Nine Men's Morris - How to Play")
+        self.screen = create_window("Nine Men's Morris - How to Play")
         self.clock = pygame.time.Clock()
         self.done = False
         self.scroll_offset = 0
@@ -328,8 +327,7 @@ class InstructionsScreen:
 
 class Menu:
     def __init__(self):
-        self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-        pygame.display.set_caption("Nine Men's Morris - Game Mode")
+        self.screen = create_window("Nine Men's Morris - Game Mode")
         self.clock = pygame.time.Clock()
         self.selected_option = None
         self.title_font = theme.font(52, bold=True)
@@ -391,8 +389,7 @@ class Menu:
 
 class DifficultySelector:
     def __init__(self):
-        self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-        pygame.display.set_caption("Nine Men's Morris - Select Difficulty")
+        self.screen = create_window("Nine Men's Morris - Select Difficulty")
         self.clock = pygame.time.Clock()
         self.selected_difficulty = None
         self.title_font = theme.font(52, bold=True)

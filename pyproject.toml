@@ -17,6 +17,7 @@ files = [
     "ui_theme.py",
     "sound_feedback.py",
     "game_persistence.py",
+    "display.py",
 ]
 check_untyped_defs = true
 ignore_missing_imports = true

@@ -2,6 +2,7 @@ import pygame
 
 import constants
 import ui_theme as theme
+from display import create_window
 from game_persistence import SaveGameError
 from sound_feedback import SoundFeedback
 
@@ -22,8 +23,7 @@ def point_center(row, col):
 
 class NineMensMorrisGUI:
     def __init__(self, game):
-        self.screen = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
-        pygame.display.set_caption("Nine Men's Morris")
+        self.screen = create_window("Nine Men's Morris")
         self.clock = pygame.time.Clock()
         self.game = game
         self.clicked_point = None
@@ -34,18 +34,24 @@ class NineMensMorrisGUI:
         self.title_font = theme.font(30, bold=True)
         self.phase_font = theme.font(17, bold=True)
 
-        self.reset_rect = pygame.Rect(constants.SIDEBAR_X, 610, 120, 42)
-        self.save_rect = pygame.Rect(constants.SIDEBAR_X + 130, 610, 120, 42)
-        self.sound_rect = pygame.Rect(constants.SIDEBAR_X, 662, 120, 42)
-        self.exit_rect = pygame.Rect(constants.SIDEBAR_X + 130, 662, 120, 42)
-        self.history_rect = pygame.Rect(constants.SIDEBAR_X, 555, 250, 42)
+        self.history_rect = pygame.Rect(constants.SIDEBAR_X, 515, 250, 38)
+        self.reset_rect = pygame.Rect(constants.SIDEBAR_X, 565, 120, 38)
+        self.save_rect = pygame.Rect(constants.SIDEBAR_X + 130, 565, 120, 38)
+        self.sound_rect = pygame.Rect(constants.SIDEBAR_X, 613, 120, 38)
+        self.contrast_rect = pygame.Rect(constants.SIDEBAR_X + 130, 613, 120, 38)
+        self.exit_rect = pygame.Rect(constants.SIDEBAR_X, 661, 250, 42)
         self.control_rects = [
+            self.history_rect,
             self.reset_rect,
             self.save_rect,
             self.sound_rect,
+            self.contrast_rect,
             self.exit_rect,
         ]
         self.focused_control = 0
+        self.board_focus_index = 0
+        self.board_keyboard_active = False
+        self.high_contrast = False
 
         self.moving_piece = None
         self.piece_effect = None
@@ -74,7 +80,9 @@ class NineMensMorrisGUI:
     def draw_board(self):
         self.screen.fill(theme.APP_BACKGROUND)
         board_rect = pygame.Rect(0, 0, constants.BOARD_PIXELS, constants.BOARD_PIXELS)
-        pygame.draw.rect(self.screen, constants.BOARD_DARK, board_rect)
+        board_color = (8, 14, 24) if self.high_contrast else constants.BOARD_DARK
+        line_color = (255, 224, 92) if self.high_contrast else constants.BOARD_LINE_COLOR
+        pygame.draw.rect(self.screen, board_color, board_rect)
 
         pygame.draw.rect(self.screen, theme.SHADOW, board_rect, 5)
         pygame.draw.rect(self.screen, theme.BRASS, board_rect.inflate(-8, -8), 2)
@@ -82,7 +90,7 @@ class NineMensMorrisGUI:
         for line in constants.LINES:
             pygame.draw.line(
                 self.screen,
-                constants.BOARD_LINE_COLOR,
+                line_color,
                 (line[0] * constants.SQUARESIZE, line[1] * constants.SQUARESIZE),
                 (line[2] * constants.SQUARESIZE, line[3] * constants.SQUARESIZE),
                 5,
@@ -99,12 +107,16 @@ class NineMensMorrisGUI:
                 constants.CIRCLE_RADIUS + 7 + pulse,
                 3,
             )
+            pygame.draw.circle(self.screen, theme.TEXT_PRIMARY, (x, y), 4)
 
         if self.clicked_point is not None and not self.review_open:
             self.draw_highlight(*self.clicked_point)
 
         for row, col in constants.VALID_POINTS:
             self.draw_point(row, col)
+
+        if self.board_keyboard_active and not self.review_open:
+            self.draw_board_focus()
 
         if self.review_open:
             self.draw_review_changes()
@@ -161,7 +173,16 @@ class NineMensMorrisGUI:
 
     def draw_piece(self, piece, x, y, radius=None):
         radius = constants.CIRCLE_RADIUS if radius is None else radius
-        if piece == constants.PLAY1:
+        if self.high_contrast and piece == constants.PLAY1:
+            dark, main, light, outline = ((0, 0, 0), (12, 16, 24), (45, 55, 72), (0, 230, 255))
+        elif self.high_contrast and piece == constants.PLAY2:
+            dark, main, light, outline = (
+                (255, 255, 255),
+                (245, 245, 245),
+                (255, 255, 255),
+                (255, 70, 210),
+            )
+        elif piece == constants.PLAY1:
             dark, main, light, outline = (
                 constants.PLAY1_COLOR_DARK,
                 constants.PLAY1_COLOR_MAIN,
@@ -184,6 +205,35 @@ class NineMensMorrisGUI:
             max(2, radius - 2),
         )
         pygame.draw.circle(self.screen, outline, (int(x), int(y)), radius + 4, 2)
+        marker = max(4, radius // 2)
+        if piece == constants.PLAY1:
+            pygame.draw.line(
+                self.screen,
+                outline,
+                (int(x) - marker, int(y) - marker),
+                (int(x) + marker, int(y) + marker),
+                2,
+            )
+            pygame.draw.line(
+                self.screen,
+                outline,
+                (int(x) + marker, int(y) - marker),
+                (int(x) - marker, int(y) + marker),
+                2,
+            )
+        else:
+            pygame.draw.circle(self.screen, outline, (int(x), int(y)), marker, 2)
+
+    def draw_board_focus(self):
+        row, col = constants.VALID_POINTS[self.board_focus_index]
+        x, y = point_center(row, col)
+        pygame.draw.rect(
+            self.screen,
+            theme.TEXT_PRIMARY,
+            pygame.Rect(x - 25, y - 25, 50, 50),
+            width=3,
+            border_radius=5,
+        )
 
     @staticmethod
     def point_is_hovered(x, y):
@@ -242,6 +292,8 @@ class NineMensMorrisGUI:
                 constants.CIRCLE_RADIUS + 11 + pulse,
                 3,
             )
+            pygame.draw.line(self.screen, theme.DANGER, (x - 9, y - 9), (x + 9, y + 9), 3)
+            pygame.draw.line(self.screen, theme.DANGER, (x + 9, y - 9), (x - 9, y + 9), 3)
 
     def draw_mill_feedback(self):
         if pygame.time.get_ticks() >= self.mill_flash_until:
@@ -274,6 +326,13 @@ class NineMensMorrisGUI:
         pulse = abs(int(8 * pygame.time.get_ticks() / 600) % 12 - 6)
         pygame.draw.circle(
             self.screen, theme.BRASS_BRIGHT, (x, y), constants.CIRCLE_RADIUS + 14 + pulse, 4
+        )
+        pygame.draw.rect(
+            self.screen,
+            theme.BRASS_BRIGHT,
+            pygame.Rect(x - 24, y - 24, 48, 48),
+            width=2,
+            border_radius=4,
         )
 
     def draw_sidebar(self):
@@ -391,11 +450,19 @@ class NineMensMorrisGUI:
             theme.TEXT_SECONDARY,
             status_y + 80,
         )
+        self.blit_text(
+            "Arrow keys: board  |  Tab: controls",
+            theme.font(12),
+            theme.TEXT_MUTED,
+            constants.SIDEBAR_X,
+            490,
+        )
         self.draw_button(
             self.history_rect,
             "Move history",
             "secondary",
             enabled=len(self.game.history) > 1,
+            control_index=0,
         )
         has_history = bool(self.game.moves_made)
         self.draw_button(
@@ -404,7 +471,7 @@ class NineMensMorrisGUI:
             "warning",
             enabled=has_history,
             icon="reset",
-            control_index=0,
+            control_index=1,
         )
         self.draw_button(
             self.save_rect,
@@ -412,7 +479,7 @@ class NineMensMorrisGUI:
             "primary",
             enabled=has_history,
             icon="save",
-            control_index=1,
+            control_index=2,
         )
         sound_label = "Sound" if self.sound.enabled else "Muted"
         sound_icon = "sound" if self.sound.enabled else "mute"
@@ -421,9 +488,16 @@ class NineMensMorrisGUI:
             sound_label,
             "secondary",
             icon=sound_icon,
-            control_index=2,
+            control_index=3,
         )
-        self.draw_button(self.exit_rect, "Exit", "danger", icon="exit", control_index=3)
+        self.draw_button(
+            self.contrast_rect,
+            "Contrast",
+            "secondary",
+            icon="contrast",
+            control_index=4,
+        )
+        self.draw_button(self.exit_rect, "Exit", "danger", icon="exit", control_index=5)
 
     def contextual_action(self):
         if self.game.over:
@@ -713,6 +787,9 @@ class NineMensMorrisGUI:
                 self.handle_key(event.key)
 
     def handle_key(self, key):
+        if key == pygame.K_F2:
+            self.high_contrast = not self.high_contrast
+            return
         if key == pygame.K_ESCAPE:
             if self.review_open:
                 self.review_open = False
@@ -729,7 +806,17 @@ class NineMensMorrisGUI:
             )
             self.review_message = ""
             return
+        if (
+            key in (pygame.K_LEFT, pygame.K_UP, pygame.K_RIGHT, pygame.K_DOWN)
+            and not self.confirm_action
+            and not self.game.over
+        ):
+            step = -1 if key in (pygame.K_LEFT, pygame.K_UP) else 1
+            self.board_focus_index = (self.board_focus_index + step) % len(constants.VALID_POINTS)
+            self.board_keyboard_active = True
+            return
         if key == pygame.K_TAB and not self.confirm_action and not self.game.over:
+            self.board_keyboard_active = False
             self.focused_control = (self.focused_control + 1) % len(self.control_rects)
             return
         if key not in (pygame.K_RETURN, pygame.K_SPACE):
@@ -740,6 +827,8 @@ class NineMensMorrisGUI:
             self.execute_confirmation()
         elif self.game.over:
             self.reset_game()
+        elif self.board_keyboard_active:
+            self.handle_click(point_center(*constants.VALID_POINTS[self.board_focus_index]))
         else:
             self.handle_click(self.control_rects[self.focused_control].center)
 
@@ -776,6 +865,9 @@ class NineMensMorrisGUI:
         if self.sound_rect.collidepoint(pos):
             self.sound.toggle()
             return
+        if self.contrast_rect.collidepoint(pos):
+            self.high_contrast = not self.high_contrast
+            return
         if self.save_rect.collidepoint(pos) and self.game.moves_made:
             try:
                 path = self.game.save_game()
@@ -794,6 +886,9 @@ class NineMensMorrisGUI:
             return
         if self.game.is_computer_turn():
             return
+
+        if pos[0] < constants.BOARD_PIXELS:
+            self.board_keyboard_active = False
 
         row, col = get_coords(pos)
         if not (0 <= row < constants.ROWS and 0 <= col < constants.COLS):

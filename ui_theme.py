@@ -131,6 +131,9 @@ def draw_icon(
         pygame.draw.rect(surface, color, pygame.Rect(x - 8, y - 8, 16, 16), width=2)
         pygame.draw.rect(surface, color, pygame.Rect(x - 4, y - 7, 8, 5), width=2)
         pygame.draw.rect(surface, color, pygame.Rect(x - 4, y + 2, 8, 5), width=2)
+    elif icon == "contrast":
+        pygame.draw.circle(surface, color, (x, y), 8, width=2)
+        pygame.draw.arc(surface, color, pygame.Rect(x - 7, y - 7, 14, 14), -1.57, 1.57, 8)
     elif icon in {"sound", "mute"}:
         pygame.draw.polygon(
             surface,

@@ -3,6 +3,7 @@ import os
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import unittest
+from typing import Any
 
 import pygame
 
@@ -152,6 +153,37 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         self.gui.handle_key(pygame.K_LEFT)
         self.assertEqual(self.gui.review_index, 0)
 
+    def test_keyboard_can_focus_and_activate_board_points(self):
+        self.gui.handle_key(pygame.K_RIGHT)
+        focused_point = constants.VALID_POINTS[1]
+        self.assertTrue(self.gui.board_keyboard_active)
+        self.assertEqual(self.gui.board_focus_index, 1)
+
+        self.gui.handle_key(pygame.K_RETURN)
+
+        self.assertEqual(
+            self.game.CURRENT_POSITION[focused_point[0]][focused_point[1]], constants.PLAY1
+        )
+
+    def test_high_contrast_toggle_changes_board_rendering(self):
+        self.gui.draw_board()
+        standard = pygame.image.tobytes(self.gui.screen, "RGB")
+        self.gui.handle_key(pygame.K_F2)
+        self.gui.draw_board()
+        high_contrast = pygame.image.tobytes(self.gui.screen, "RGB")
+
+        self.assertTrue(self.gui.high_contrast)
+        self.assertNotEqual(standard, high_contrast)
+
+    def test_game_state_remains_textual_without_sound_or_animation(self):
+        self.gui.sound.enabled = False
+        self.gui.moving_piece = None
+        self.gui.piece_effect = None
+        self.gui.capture_effect = None
+        self.assertEqual(self.gui.contextual_action(), "Place a black piece")
+        self.gui.draw_board()
+        self.assertIsNotNone(self.gui.screen)
+
     def test_instruction_copy_wraps_inside_content_area(self):
         instructions = InstructionsScreen()
         for text, text_type in instructions.instructions:
@@ -192,7 +224,7 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         )
 
     def test_common_display_scaling_keeps_complete_frame(self):
-        renderers = [
+        renderers: list[tuple[Any, str]] = [
             (HomePage(), "draw"),
             (Menu(), "draw_menu"),
             (DifficultySelector(), "draw_selector"),
