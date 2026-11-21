@@ -56,6 +56,9 @@ class NineMensMorrisGUI:
         self.moving_piece = None
         self.piece_effect = None
         self.capture_effect = None
+        self.movement_animation_duration = constants.ANIMATION_DURATION
+        self.placement_animation_duration = constants.PLACEMENT_ANIMATION_DURATION
+        self.capture_animation_duration = constants.CAPTURE_ANIMATION_DURATION
         self.mill_flash_until = 0
         self.mill_points: list[tuple[int, int]] = []
         self.ai_thinking = False
@@ -147,8 +150,8 @@ class NineMensMorrisGUI:
             radius = constants.CIRCLE_RADIUS
             if self.piece_effect and self.piece_effect[:3] == (row, col, piece):
                 elapsed = pygame.time.get_ticks() - self.piece_effect[3]
-                if elapsed < constants.PLACEMENT_ANIMATION_DURATION:
-                    progress = max(0.2, elapsed / constants.PLACEMENT_ANIMATION_DURATION)
+                if elapsed < self.placement_animation_duration:
+                    progress = max(0.2, elapsed / self.placement_animation_duration)
                     radius = max(4, round(constants.CIRCLE_RADIUS * progress))
                 else:
                     self.piece_effect = None
@@ -261,7 +264,7 @@ class NineMensMorrisGUI:
 
         from_row, from_col, to_row, to_col, start_time = self.moving_piece
         elapsed = pygame.time.get_ticks() - start_time
-        duration = constants.ANIMATION_DURATION
+        duration = self.movement_animation_duration
 
         if elapsed >= duration:
             self.moving_piece = None
@@ -314,10 +317,10 @@ class NineMensMorrisGUI:
             return
         row, col, piece, started = self.capture_effect
         elapsed = pygame.time.get_ticks() - started
-        if elapsed >= constants.CAPTURE_ANIMATION_DURATION:
+        if elapsed >= self.capture_animation_duration:
             self.capture_effect = None
             return
-        progress = 1 - elapsed / constants.CAPTURE_ANIMATION_DURATION
+        progress = 1 - elapsed / self.capture_animation_duration
         x, y = point_center(row, col)
         self.draw_piece(piece, x, y, max(3, round(constants.CIRCLE_RADIUS * progress)))
 
@@ -899,6 +902,7 @@ class NineMensMorrisGUI:
         if self.game.is_remove_piece:
             removed_piece = self.game.CURRENT_POSITION[row][col]
             if self.game.remove_piece(row, col, self.game.get_turn()):
+                self.capture_animation_duration = constants.CAPTURE_ANIMATION_DURATION
                 self.capture_effect = (row, col, removed_piece, pygame.time.get_ticks())
                 self.sound.play("capture")
                 self.clicked_point = None
@@ -909,6 +913,7 @@ class NineMensMorrisGUI:
         if self.game.phase == constants.PHASE1:
             player = self.game.turn
             if self.game.make_move(row, col):
+                self.placement_animation_duration = constants.PLACEMENT_ANIMATION_DURATION
                 self.piece_effect = (row, col, player, pygame.time.get_ticks())
                 self.sound.play("move")
                 if self.game.is_remove_piece:
@@ -943,6 +948,7 @@ class NineMensMorrisGUI:
         start = self.clicked_point
         player = self.game.turn
         if self.game.make_move(start[0], start[1], row, col):
+            self.movement_animation_duration = constants.ANIMATION_DURATION
             self.moving_piece = (start[0], start[1], row, col, pygame.time.get_ticks())
             self.sound.play("move")
             if self.game.is_remove_piece:
@@ -957,18 +963,34 @@ class NineMensMorrisGUI:
         while self.game.is_computer_turn() and guard < 4:
             before = [row[:] for row in self.game.CURRENT_POSITION]
             self.ai_thinking = True
-            self.draw_board()
-            pygame.display.flip()
-            pygame.event.pump()
-            pygame.time.delay(constants.MINIMUM_THINKING_DISPLAY_MS)
+            self.render_for_duration(constants.MINIMUM_THINKING_DISPLAY_MS)
+            if self.return_to_menu:
+                return
             self.game.computer_move()
             self.ai_thinking = False
             self.apply_board_transition_feedback(before)
-            self.draw_board()
-            pygame.display.flip()
-            pygame.event.pump()
-            pygame.time.delay(constants.AI_MOVE_FEEDBACK_MS)
+            self.render_computer_transition()
+            self.render_for_duration(constants.AI_MOVE_FEEDBACK_MS)
             guard += 1
+
+    def render_for_duration(self, duration_ms):
+        ends_at = pygame.time.get_ticks() + duration_ms
+        while pygame.time.get_ticks() < ends_at and not self.return_to_menu:
+            self.draw_board()
+            self.handle_events()
+            pygame.display.flip()
+            self.clock.tick(60)
+
+    def render_computer_transition(self):
+        while not self.return_to_menu:
+            animation_active = any((self.moving_piece, self.piece_effect, self.capture_effect))
+            mill_active = pygame.time.get_ticks() < self.mill_flash_until
+            if not animation_active and not mill_active:
+                return
+            self.draw_board()
+            self.handle_events()
+            pygame.display.flip()
+            self.clock.tick(60)
 
     def start_mill_feedback(self, player):
         points = {
@@ -991,6 +1013,7 @@ class NineMensMorrisGUI:
         removed = [change for change in changed if change[3] == constants.BLANK]
         now = pygame.time.get_ticks()
         if added and removed and added[0][3] == removed[0][2]:
+            self.movement_animation_duration = constants.AI_MOVEMENT_ANIMATION_DURATION
             self.moving_piece = (
                 removed[0][0],
                 removed[0][1],
@@ -1001,10 +1024,12 @@ class NineMensMorrisGUI:
             self.sound.play("move")
         elif added:
             row, col, _old, piece = added[0]
+            self.placement_animation_duration = constants.AI_PLACEMENT_ANIMATION_DURATION
             self.piece_effect = (row, col, piece, now)
             self.sound.play("move")
         elif removed:
             row, col, piece, _new = removed[0]
+            self.capture_animation_duration = constants.AI_CAPTURE_ANIMATION_DURATION
             self.capture_effect = (row, col, piece, now)
             self.sound.play("capture")
         if self.game.is_remove_piece:
@@ -1055,6 +1080,9 @@ class NineMensMorrisGUI:
         self.moving_piece = None
         self.piece_effect = None
         self.capture_effect = None
+        self.movement_animation_duration = constants.ANIMATION_DURATION
+        self.placement_animation_duration = constants.PLACEMENT_ANIMATION_DURATION
+        self.capture_animation_duration = constants.CAPTURE_ANIMATION_DURATION
         self.mill_points = []
         self.mill_flash_until = 0
         self.game_complete_announced = False

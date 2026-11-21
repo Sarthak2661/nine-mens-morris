@@ -9,7 +9,7 @@ import pygame
 
 import constants
 import ui_theme as theme
-from GUI import NineMensMorrisGUI, get_coords
+from GUI import NineMensMorrisGUI, get_coords, point_center
 from logic import NineMensMorrisGame
 from menu import DifficultySelector, HomePage, InstructionsScreen, Menu, wrap_text
 
@@ -183,6 +183,42 @@ class TestNineMensMorrisGUI(unittest.TestCase):
         self.assertEqual(self.gui.contextual_action(), "Place a black piece")
         self.gui.draw_board()
         self.assertIsNotNone(self.gui.screen)
+
+    def test_computer_transitions_use_readable_animation_durations(self):
+        before = [row[:] for row in self.game.CURRENT_POSITION]
+        self.game.CURRENT_POSITION[0][0] = constants.PLAY2
+        self.gui.apply_board_transition_feedback(before)
+        self.assertEqual(
+            self.gui.placement_animation_duration,
+            constants.AI_PLACEMENT_ANIMATION_DURATION,
+        )
+
+        before = [row[:] for row in self.game.CURRENT_POSITION]
+        self.game.CURRENT_POSITION[0][0] = constants.BLANK
+        self.game.CURRENT_POSITION[0][3] = constants.PLAY2
+        self.gui.apply_board_transition_feedback(before)
+        self.assertEqual(
+            self.gui.movement_animation_duration,
+            constants.AI_MOVEMENT_ANIMATION_DURATION,
+        )
+
+        before = [row[:] for row in self.game.CURRENT_POSITION]
+        self.game.CURRENT_POSITION[6][6] = constants.PLAY1
+        before[6][6] = constants.PLAY1
+        self.game.CURRENT_POSITION[6][6] = constants.BLANK
+        self.gui.apply_board_transition_feedback(before)
+        self.assertEqual(
+            self.gui.capture_animation_duration,
+            constants.AI_CAPTURE_ANIMATION_DURATION,
+        )
+
+    def test_human_placement_restores_normal_animation_speed(self):
+        self.gui.placement_animation_duration = constants.AI_PLACEMENT_ANIMATION_DURATION
+        self.gui.handle_click(point_center(0, 0))
+        self.assertEqual(
+            self.gui.placement_animation_duration,
+            constants.PLACEMENT_ANIMATION_DURATION,
+        )
 
     def test_instruction_copy_wraps_inside_content_area(self):
         instructions = InstructionsScreen()
